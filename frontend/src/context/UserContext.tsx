@@ -144,14 +144,41 @@ export function UserProvider({ children }: UserProviderProps) {
     }
   }, [state.profile, state.settings, state.isLoading]);
 
+  // Synchronous save helper for immediate persistence
+  const saveProfile = (newProfile: UserProfile) => {
+    localStorage.setItem(STORAGE_KEYS.USER_PROFILE, JSON.stringify(newProfile));
+  };
+
+  const saveSettings = (newSettings: Settings) => {
+    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(newSettings));
+  };
+
   const value: UserContextValue = {
     profile: state.profile,
     settings: state.settings,
     isLoading: state.isLoading,
-    updateProfile: (updates) => dispatch({ type: 'SET_PROFILE', payload: updates }),
-    updateSettings: (updates) => dispatch({ type: 'SET_SETTINGS', payload: updates }),
-    completeOnboarding: () => dispatch({ type: 'COMPLETE_ONBOARDING' }),
-    setNavApp: (app) => dispatch({ type: 'SET_NAV_APP', payload: app }),
+    updateProfile: (updates) => {
+      // Save synchronously before dispatching to ensure persistence
+      const newProfile = { ...state.profile, ...updates };
+      saveProfile(newProfile);
+      dispatch({ type: 'SET_PROFILE', payload: updates });
+    },
+    updateSettings: (updates) => {
+      // Save synchronously before dispatching to ensure persistence
+      const newSettings = { ...state.settings, ...updates };
+      saveSettings(newSettings);
+      dispatch({ type: 'SET_SETTINGS', payload: updates });
+    },
+    completeOnboarding: () => {
+      const newProfile = { ...state.profile, onboarding_completed: true };
+      saveProfile(newProfile);
+      dispatch({ type: 'COMPLETE_ONBOARDING' });
+    },
+    setNavApp: (app) => {
+      const newProfile = { ...state.profile, preferred_nav_app: app };
+      saveProfile(newProfile);
+      dispatch({ type: 'SET_NAV_APP', payload: app });
+    },
   };
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;

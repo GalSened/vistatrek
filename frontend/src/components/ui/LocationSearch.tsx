@@ -72,7 +72,16 @@ export default function LocationSearch({
 
       if (response.ok) {
         const data: SearchResult[] = await response.json();
-        setResults(data);
+        // Deduplicate by display_name to avoid showing identical entries
+        const seen = new Set<string>();
+        const deduped = data.filter((result) => {
+          if (seen.has(result.display_name)) {
+            return false;
+          }
+          seen.add(result.display_name);
+          return true;
+        });
+        setResults(deduped);
         setShowResults(true);
       }
     } catch (error) {

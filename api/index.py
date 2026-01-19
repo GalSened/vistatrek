@@ -9,9 +9,11 @@ from pydantic import BaseModel, Field
 from typing import Optional, Literal
 import requests
 import uuid
+from datetime import datetime
 from geopy.distance import geodesic
 import math
 import urllib3
+import re
 
 # Suppress SSL warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -102,6 +104,78 @@ class FrontendPlanResponse(BaseModel):
     macro_route: Route
     micro_stops: list[POI]
     golden_clusters: list[GoldenCluster]
+
+
+# ============== Trip CRUD Models ==============
+
+TripStatus = Literal["draft", "active", "completed"]
+
+
+class Stop(BaseModel):
+    id: str
+    name: str
+    type: StopType
+    coordinates: Coordinates
+    planned_arrival: str
+    planned_departure: str
+    duration_minutes: int
+    osm_id: Optional[int] = None
+    tags: Optional[dict] = None
+    is_anchor: bool = False
+    actual_arrival: Optional[str] = None
+    actual_departure: Optional[str] = None
+    skipped: Optional[bool] = None
+
+
+class TripExecution(BaseModel):
+    started_at: str
+    current_stop_index: int
+    completed_stops: list[str]
+
+
+class TripCreateRequest(BaseModel):
+    """Request to create a new trip"""
+    name: str = Field(..., max_length=100)
+    start_location: Coordinates
+    end_location: Coordinates
+    date: str
+    vibes: Optional[list[str]] = None
+
+
+class Trip(BaseModel):
+    """Full trip model for CRUD operations"""
+    id: str
+    name: str
+    status: TripStatus
+    created_at: str
+    updated_at: str
+    start_location: Coordinates
+    end_location: Coordinates
+    date: str
+    vibes: Optional[list[str]] = None
+    route: Route
+    stops: list[Stop]
+    suggestions: Optional[list[POI]] = None
+    execution: Optional[TripExecution] = None
+
+
+# ============== Chat Models ==============
+
+class ChatActionRequest(BaseModel):
+    text: str = Field(..., max_length=500)
+    current_trip_id: Optional[str] = None
+    user_location: Optional[Coordinates] = None
+
+
+class ChatAction(BaseModel):
+    type: Literal["add_stop", "remove_stop", "reorder", "recalculate", "none"]
+    payload: Optional[dict] = None
+
+
+class ChatActionResponse(BaseModel):
+    reply: str
+    action: Optional[ChatAction] = None
+    updated_trip: Optional[Trip] = None
 
 
 # ============== FastAPI App ==============
@@ -379,4 +453,172 @@ async def plan_trip_frontend(request: FrontendPlanRequest):
         ),
         micro_stops=micro_stops,
         golden_clusters=golden_clusters
+    )
+
+
+# ============== Trip CRUD Endpoints ==============
+
+# In-memory storage (serverless - not persistent across invocations)
+# For production, use a database like Supabase, PlanetScale, or Vercel KV
+trips_storage: dict[str, Trip] = {}
+
+
+@app.post("/api/trips", response_model=Trip)
+async def create_trip(request: TripCreateRequest):
+    """
+    Create a new trip with route planning.
+    Plans the route and finds golden clusters along the way.
+    """
+    # Validate trip name
+    if len(request.name.strip()) == 0:
+        raise HTTPException(status_code=400, detail="Trip name cannot be empty")
+
+    # Clean the trip name (remove excessive whitespace)
+    clean_name = re.sub(r'\s+', ' ', request.name.strip())[:100]
+
+    # Convert coordinates to GeoPoints for routing
+    start = GeoPoint(lat=request.start_location.lat, lon=request.start_location.lon)
+    end = GeoPoint(lat=request.end_location.lat, lon=request.end_location.lon)
+
+    # Get route from OSRM
+    route_data = get_osrm_route(start, end)
+
+    # Find midpoint and golden clusters
+    midpoint = find_route_midpoint(route_data["geometry"])
+    golden_spots = find_golden_clusters(midpoint)
+
+    # Convert golden spots to suggested POIs
+    suggestions = [golden_spot_to_poi(spot) for spot in golden_spots]
+
+    # Generate trip ID and timestamps
+    trip_id = str(uuid.uuid4())
+    now = datetime.utcnow().isoformat() + "Z"
+
+    # Create the trip object
+    trip = Trip(
+        id=trip_id,
+        name=clean_name,
+        status="draft",
+        created_at=now,
+        updated_at=now,
+        start_location=request.start_location,
+        end_location=request.end_location,
+        date=request.date,
+        vibes=request.vibes,
+        route=Route(
+            polyline=route_data["geometry"],
+            duration_seconds=int(route_data["duration_sec"]),
+            distance_meters=int(route_data["distance_m"])
+        ),
+        stops=[],
+        suggestions=suggestions,
+        execution=None
+    )
+
+    # Store the trip (in-memory, will be lost on cold start)
+    trips_storage[trip_id] = trip
+
+    return trip
+
+
+@app.get("/api/trips/{trip_id}", response_model=Trip)
+async def get_trip(trip_id: str):
+    """
+    Retrieve a trip by ID.
+    Note: In serverless environment, trips may not persist between invocations.
+    """
+    if trip_id not in trips_storage:
+        raise HTTPException(
+            status_code=404,
+            detail="Trip not found. Note: Trips are stored in memory and may be lost on server restart."
+        )
+    return trips_storage[trip_id]
+
+
+@app.put("/api/trips/{trip_id}", response_model=Trip)
+async def update_trip(trip_id: str, trip_update: Trip):
+    """Update an existing trip."""
+    if trip_id not in trips_storage:
+        raise HTTPException(status_code=404, detail="Trip not found")
+
+    # Update timestamp
+    trip_update.updated_at = datetime.utcnow().isoformat() + "Z"
+    trips_storage[trip_id] = trip_update
+    return trip_update
+
+
+@app.delete("/api/trips/{trip_id}")
+async def delete_trip(trip_id: str):
+    """Delete a trip by ID."""
+    if trip_id not in trips_storage:
+        raise HTTPException(status_code=404, detail="Trip not found")
+
+    del trips_storage[trip_id]
+    return {"status": "deleted", "id": trip_id}
+
+
+# ============== Chat Action Endpoint ==============
+
+@app.post("/api/chat/action", response_model=ChatActionResponse)
+async def chat_action(request: ChatActionRequest):
+    """
+    Process a chat message and determine if it requires an action.
+    This is a simplified implementation - a production version would use an LLM.
+    """
+    text_lower = request.text.lower().strip()
+
+    # Simple keyword-based intent detection
+    # In production, this would use an LLM like Claude or GPT
+
+    # Check for add stop intent
+    if any(word in text_lower for word in ["add", "stop at", "include", "visit"]):
+        # Look for stop type keywords
+        stop_type = None
+        if "coffee" in text_lower or "cafe" in text_lower:
+            stop_type = "coffee"
+        elif "food" in text_lower or "restaurant" in text_lower or "eat" in text_lower:
+            stop_type = "food"
+        elif "viewpoint" in text_lower or "view" in text_lower or "scenic" in text_lower:
+            stop_type = "viewpoint"
+        elif "parking" in text_lower:
+            stop_type = "parking"
+
+        if stop_type:
+            return ChatActionResponse(
+                reply=f"I'll add a {stop_type} stop to your trip. Looking for the best options nearby...",
+                action=ChatAction(
+                    type="add_stop",
+                    payload={"stop_type": stop_type}
+                )
+            )
+
+    # Check for remove stop intent
+    if any(word in text_lower for word in ["remove", "delete", "skip", "cancel"]):
+        return ChatActionResponse(
+            reply="Which stop would you like to remove? Please specify the stop name or number.",
+            action=ChatAction(type="none")
+        )
+
+    # Check for reorder intent
+    if any(word in text_lower for word in ["reorder", "move", "swap", "rearrange"]):
+        return ChatActionResponse(
+            reply="I can help you reorder your stops. Which stop would you like to move?",
+            action=ChatAction(type="none")
+        )
+
+    # Check for recalculate intent
+    if any(word in text_lower for word in ["recalculate", "update route", "new route", "optimize"]):
+        return ChatActionResponse(
+            reply="I'll recalculate your route with the current stops.",
+            action=ChatAction(type="recalculate")
+        )
+
+    # Default response for unrecognized intents
+    return ChatActionResponse(
+        reply="I can help you plan your trip! Try saying things like:\n"
+              "- 'Add a coffee stop'\n"
+              "- 'Find a scenic viewpoint'\n"
+              "- 'Recalculate my route'\n"
+              "What would you like to do?",
+        action=ChatAction(type="none")
     )

@@ -4,7 +4,7 @@
  * iOS-style 2026 design with glass morphism
  */
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import { useTrip } from '../context/TripContext';
@@ -32,6 +32,9 @@ export default function Home() {
     !profile.onboarding_completed
   );
 
+  // Ref-based guard to prevent double-submit (handles rapid clicks before state updates)
+  const isSubmittingRef = useRef(false);
+
   const vibeOptions = [
     { id: 'nature', label: 'Nature', emoji: '🌲' },
     { id: 'chill', label: 'Chill', emoji: '☕' },
@@ -49,17 +52,24 @@ export default function Home() {
   };
 
   const handleCreateTrip = async () => {
+    // Double-submit protection using ref (synchronous check)
+    if (isSubmittingRef.current) {
+      return;
+    }
+
     if (!startLocation || !endLocation) {
       setError('Please select start and end locations');
       return;
     }
 
+    // Set ref immediately to block concurrent clicks
+    isSubmittingRef.current = true;
     setIsCreating(true);
     setError(null);
 
     try {
       const trip = await tripApi.create({
-        name: tripName || 'My Trip',
+        name: tripName.trim().slice(0, 100) || 'My Trip',
         start_location: startLocation,
         end_location: endLocation,
         date: tripDate,
@@ -72,6 +82,7 @@ export default function Home() {
       setError(err instanceof Error ? err.message : 'Failed to create trip');
     } finally {
       setIsCreating(false);
+      isSubmittingRef.current = false;
     }
   };
 
@@ -123,6 +134,7 @@ export default function Home() {
               placeholder="Weekend Getaway"
               value={tripName}
               onChange={(e) => setTripName(e.target.value)}
+              maxLength={100}
               className="glass-input"
             />
           </div>
