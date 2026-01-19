@@ -6,8 +6,9 @@ Scenic route planning with Golden Cluster recommendations.
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, Literal
 import requests
+import uuid
 from geopy.distance import geodesic
 import math
 import urllib3
@@ -48,6 +49,59 @@ class TripResponse(BaseModel):
     route_geometry: list[list[float]]
     recommended_stops: list[GoldenSpot]
     search_area: GeoPoint
+
+
+# ============== Frontend-Compatible Models ==============
+
+StopType = Literal["viewpoint", "coffee", "food", "spring", "parking", "hotel", "custom"]
+
+
+class FrontendPlanRequest(BaseModel):
+    """Request format expected by the frontend"""
+    start_lat: float = Field(..., ge=-90, le=90)
+    start_lon: float = Field(..., ge=-180, le=180)
+    end_lat: float = Field(..., ge=-90, le=90)
+    end_lon: float = Field(..., ge=-180, le=180)
+    date: Optional[str] = None
+    vibes: Optional[list[str]] = None
+
+
+class Coordinates(BaseModel):
+    lat: float
+    lon: float
+
+
+class Route(BaseModel):
+    polyline: list[list[float]]  # Array of [lon, lat]
+    duration_seconds: int
+    distance_meters: int
+
+
+class POI(BaseModel):
+    id: str
+    osm_id: int
+    name: str
+    type: StopType
+    coordinates: Coordinates
+    tags: Optional[dict] = None
+    distance_from_route_km: Optional[float] = None
+    match_score: Optional[int] = None
+
+
+class GoldenCluster(BaseModel):
+    id: str
+    center: Coordinates
+    viewpoint: POI
+    parking: Optional[POI] = None
+    coffee: Optional[POI] = None
+    total_score: int
+
+
+class FrontendPlanResponse(BaseModel):
+    """Response format expected by the frontend"""
+    macro_route: Route
+    micro_stops: list[POI]
+    golden_clusters: list[GoldenCluster]
 
 
 # ============== FastAPI App ==============
@@ -235,12 +289,18 @@ async def health_check():
     return {"status": "ok", "service": "VistaTrek API"}
 
 
+@app.get("/api/health")
+async def health_check_alt():
+    """Alternative health endpoint for frontend compatibility"""
+    return {"status": "ok"}
+
+
 @app.post("/api/plan_trip", response_model=TripResponse)
 async def plan_trip(request: TripRequest):
     route_data = get_osrm_route(request.start, request.end)
     midpoint = find_route_midpoint(route_data["geometry"])
     golden_spots = find_golden_clusters(midpoint)
-    
+
     return TripResponse(
         trip_summary=TripSummary(
             duration_min=int(route_data["duration_sec"] / 60),
@@ -249,4 +309,74 @@ async def plan_trip(request: TripRequest):
         route_geometry=route_data["geometry"],
         recommended_stops=golden_spots,
         search_area=midpoint
+    )
+
+
+def determine_stop_type(tags: dict) -> StopType:
+    """Determine the stop type from OSM tags"""
+    if tags.get("tourism") == "viewpoint":
+        return "viewpoint"
+    if tags.get("natural") == "spring":
+        return "spring"
+    if tags.get("amenity") == "cafe":
+        return "coffee"
+    if tags.get("amenity") == "restaurant":
+        return "food"
+    if tags.get("amenity") == "parking":
+        return "parking"
+    return "viewpoint"
+
+
+def golden_spot_to_poi(spot: GoldenSpot) -> POI:
+    """Convert a GoldenSpot to a POI"""
+    return POI(
+        id=str(spot.id),
+        osm_id=spot.id,
+        name=spot.name or "Scenic Viewpoint",
+        type=determine_stop_type(spot.tags),
+        coordinates=Coordinates(lat=spot.lat, lon=spot.lon),
+        tags=spot.tags,
+        match_score=spot.score
+    )
+
+
+@app.post("/api/trips/plan", response_model=FrontendPlanResponse)
+async def plan_trip_frontend(request: FrontendPlanRequest):
+    """
+    Frontend-compatible endpoint for trip planning.
+    Accepts flat coordinates and returns response in frontend format.
+    """
+    # Convert flat coords to GeoPoint
+    start = GeoPoint(lat=request.start_lat, lon=request.start_lon)
+    end = GeoPoint(lat=request.end_lat, lon=request.end_lon)
+
+    # Get route from OSRM
+    route_data = get_osrm_route(start, end)
+
+    # Find midpoint and golden clusters
+    midpoint = find_route_midpoint(route_data["geometry"])
+    golden_spots = find_golden_clusters(midpoint)
+
+    # Convert golden spots to POIs
+    micro_stops = [golden_spot_to_poi(spot) for spot in golden_spots]
+
+    # Build golden clusters (group viewpoints with nearby parking/coffee)
+    golden_clusters = []
+    for spot in golden_spots:
+        viewpoint_poi = golden_spot_to_poi(spot)
+        golden_clusters.append(GoldenCluster(
+            id=str(uuid.uuid4()),
+            center=Coordinates(lat=spot.lat, lon=spot.lon),
+            viewpoint=viewpoint_poi,
+            total_score=spot.score
+        ))
+
+    return FrontendPlanResponse(
+        macro_route=Route(
+            polyline=route_data["geometry"],
+            duration_seconds=int(route_data["duration_sec"]),
+            distance_meters=int(route_data["distance_m"])
+        ),
+        micro_stops=micro_stops,
+        golden_clusters=golden_clusters
     )
