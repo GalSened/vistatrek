@@ -67,3 +67,4 @@ env/
 # Misc
 *.tsbuildinfo
 .vercel/
+.vercel

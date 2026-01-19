@@ -3,7 +3,7 @@
  * Per PRD: Route planning with map, stop list, and suggestions
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTrip } from '../context/TripContext';
 import TripMap from '../components/map/TripMap';
@@ -35,6 +35,9 @@ export default function Planner() {
   const [isPlanningRoute, setIsPlanningRoute] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Track if we've already attempted to plan the route (prevents infinite loop)
+  const hasAttemptedPlan = useRef(false);
+
   // Load trip if needed
   useEffect(() => {
     const loadTrip = async () => {
@@ -54,14 +57,21 @@ export default function Planner() {
     loadTrip();
   }, [tripId, currentTrip, setTrip]);
 
+  // Reset plan attempt tracking when trip changes
+  useEffect(() => {
+    hasAttemptedPlan.current = false;
+  }, [currentTrip?.id]);
+
   // Plan route when trip is loaded but has no route
   useEffect(() => {
     const planRoute = async () => {
       if (
         currentTrip &&
         currentTrip.route.polyline.length === 0 &&
-        !isPlanningRoute
+        !isPlanningRoute &&
+        !hasAttemptedPlan.current
       ) {
+        hasAttemptedPlan.current = true;
         setIsPlanningRoute(true);
         try {
           const response: PlanTripResponse = await tripApi.plan({
@@ -77,6 +87,7 @@ export default function Planner() {
           setSuggestions(response.micro_stops);
         } catch (err) {
           console.error('Route planning failed:', err);
+          setError('Failed to plan route. Please try again.');
         } finally {
           setIsPlanningRoute(false);
         }
