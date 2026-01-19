@@ -1,6 +1,7 @@
 /**
  * Settings Page
  * Per PRD: User preferences and app settings
+ * iOS-style 2026 design with glass morphism
  */
 
 import { useNavigate } from 'react-router-dom';
@@ -12,24 +13,30 @@ export default function Settings() {
   const { profile, settings, updateProfile, updateSettings, setNavApp } =
     useUser();
 
-  const navAppOptions: { value: NavApp; label: string }[] = [
-    { value: 'waze', label: 'Waze' },
-    { value: 'google', label: 'Google Maps' },
-    { value: 'apple', label: 'Apple Maps' },
+  const navAppOptions: { value: NavApp; label: string; icon: string }[] = [
+    { value: 'waze', label: 'Waze', icon: '🗺️' },
+    { value: 'google', label: 'Google Maps', icon: '📍' },
+    { value: 'apple', label: 'Apple Maps', icon: '🍎' },
   ];
 
   return (
     <div className="settings-page">
-      <header className="settings-header">
-        <button className="back-btn" onClick={() => navigate(-1)}>
-          ← Back
+      <header className="settings-header glass-header">
+        <button className="back-btn icon-btn" onClick={() => navigate(-1)}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
         </button>
         <h1>Settings</h1>
+        <div className="header-spacer" />
       </header>
 
       <main className="settings-main">
-        <section className="settings-section">
-          <h2>Profile</h2>
+        <section className="settings-section glass-card">
+          <div className="section-header">
+            <span className="section-icon">👤</span>
+            <h2>Profile</h2>
+          </div>
 
           <div className="setting-item">
             <label htmlFor="profile-name">Name</label>
@@ -39,14 +46,18 @@ export default function Settings() {
               value={profile.name || ''}
               onChange={(e) => updateProfile({ name: e.target.value })}
               placeholder="Your name"
+              className="glass-input"
             />
           </div>
 
           <div className="setting-item slider-setting">
-            <label>
-              Hiking Score
-              <span className="value">{profile.hiking_score}</span>
-            </label>
+            <div className="setting-label-row">
+              <label>
+                <span className="label-icon">🥾</span>
+                Hiking Score
+              </label>
+              <span className="value-badge">{profile.hiking_score}</span>
+            </div>
             <input
               type="range"
               min="1"
@@ -55,6 +66,7 @@ export default function Settings() {
               onChange={(e) =>
                 updateProfile({ hiking_score: parseInt(e.target.value) })
               }
+              className="ios-slider"
             />
             <p className="setting-hint">
               Higher = more challenging trails and viewpoints
@@ -62,10 +74,13 @@ export default function Settings() {
           </div>
 
           <div className="setting-item slider-setting">
-            <label>
-              Foodie Score
-              <span className="value">{profile.foodie_score}</span>
-            </label>
+            <div className="setting-label-row">
+              <label>
+                <span className="label-icon">🍕</span>
+                Foodie Score
+              </label>
+              <span className="value-badge">{profile.foodie_score}</span>
+            </div>
             <input
               type="range"
               min="1"
@@ -74,6 +89,7 @@ export default function Settings() {
               onChange={(e) =>
                 updateProfile({ foodie_score: parseInt(e.target.value) })
               }
+              className="ios-slider"
             />
             <p className="setting-hint">
               Higher = more cafes and restaurants suggested
@@ -81,10 +97,13 @@ export default function Settings() {
           </div>
 
           <div className="setting-item slider-setting">
-            <label>
-              Patience Score
-              <span className="value">{profile.patience_score}</span>
-            </label>
+            <div className="setting-label-row">
+              <label>
+                <span className="label-icon">⏱️</span>
+                Patience Score
+              </label>
+              <span className="value-badge">{profile.patience_score}</span>
+            </div>
             <input
               type="range"
               min="1"
@@ -93,6 +112,7 @@ export default function Settings() {
               onChange={(e) =>
                 updateProfile({ patience_score: parseInt(e.target.value) })
               }
+              className="ios-slider"
             />
             <p className="setting-hint">
               Higher = more stops, longer detours OK
@@ -100,103 +120,143 @@ export default function Settings() {
           </div>
         </section>
 
-        <section className="settings-section">
-          <h2>Navigation</h2>
+        <section className="settings-section glass-card">
+          <div className="section-header">
+            <span className="section-icon">🧭</span>
+            <h2>Navigation</h2>
+          </div>
 
-          <div className="setting-item">
+          <div className="setting-item nav-app-setting">
             <label>Preferred Navigation App</label>
-            <div className="radio-group">
+            <div className="nav-app-selector">
               {navAppOptions.map((option) => (
-                <label key={option.value} className="radio-option">
-                  <input
-                    type="radio"
-                    name="nav-app"
-                    value={option.value}
-                    checked={profile.preferred_nav_app === option.value}
-                    onChange={() => setNavApp(option.value)}
-                  />
-                  <span>{option.label}</span>
-                </label>
+                <button
+                  key={option.value}
+                  type="button"
+                  className={`nav-app-option ${
+                    profile.preferred_nav_app === option.value ? 'selected' : ''
+                  }`}
+                  onClick={() => setNavApp(option.value)}
+                >
+                  <span className="nav-app-icon">{option.icon}</span>
+                  <span className="nav-app-label">{option.label}</span>
+                </button>
               ))}
             </div>
           </div>
         </section>
 
-        <section className="settings-section">
-          <h2>App Settings</h2>
-
-          <div className="setting-item toggle-setting">
-            <label htmlFor="gps-tracking">
-              <span>GPS Tracking</span>
-              <span className="setting-description">
-                Enable real-time location tracking during trips
-              </span>
-            </label>
-            <input
-              id="gps-tracking"
-              type="checkbox"
-              checked={settings.gps_tracking}
-              onChange={(e) =>
-                updateSettings({ gps_tracking: e.target.checked })
-              }
-            />
+        <section className="settings-section glass-card">
+          <div className="section-header">
+            <span className="section-icon">⚙️</span>
+            <h2>App Settings</h2>
           </div>
 
           <div className="setting-item toggle-setting">
-            <label htmlFor="smart-alerts">
-              <span>Smart Alerts</span>
-              <span className="setting-description">
-                Get notified about timing and pacing
-              </span>
-            </label>
-            <input
-              id="smart-alerts"
-              type="checkbox"
-              checked={settings.smart_alerts}
-              onChange={(e) =>
-                updateSettings({ smart_alerts: e.target.checked })
-              }
-            />
+            <div className="toggle-content">
+              <div className="toggle-label">
+                <span className="label-icon">📡</span>
+                <div>
+                  <span className="toggle-title">GPS Tracking</span>
+                  <span className="toggle-description">
+                    Enable real-time location tracking during trips
+                  </span>
+                </div>
+              </div>
+              <label className="toggle-switch">
+                <input
+                  type="checkbox"
+                  checked={settings.gps_tracking}
+                  onChange={(e) =>
+                    updateSettings({ gps_tracking: e.target.checked })
+                  }
+                />
+                <span className="toggle-slider" />
+              </label>
+            </div>
           </div>
 
           <div className="setting-item toggle-setting">
-            <label htmlFor="feedback-popups">
-              <span>Feedback Popups</span>
-              <span className="setting-description">
-                Quick rating popups after each stop
-              </span>
-            </label>
-            <input
-              id="feedback-popups"
-              type="checkbox"
-              checked={settings.feedback_popups}
-              onChange={(e) =>
-                updateSettings({ feedback_popups: e.target.checked })
-              }
-            />
+            <div className="toggle-content">
+              <div className="toggle-label">
+                <span className="label-icon">🔔</span>
+                <div>
+                  <span className="toggle-title">Smart Alerts</span>
+                  <span className="toggle-description">
+                    Get notified about timing and pacing
+                  </span>
+                </div>
+              </div>
+              <label className="toggle-switch">
+                <input
+                  type="checkbox"
+                  checked={settings.smart_alerts}
+                  onChange={(e) =>
+                    updateSettings({ smart_alerts: e.target.checked })
+                  }
+                />
+                <span className="toggle-slider" />
+              </label>
+            </div>
           </div>
 
           <div className="setting-item toggle-setting">
-            <label htmlFor="dark-mode">
-              <span>Dark Mode</span>
-              <span className="setting-description">
-                Use dark theme for the app
-              </span>
-            </label>
-            <input
-              id="dark-mode"
-              type="checkbox"
-              checked={settings.dark_mode}
-              onChange={(e) => updateSettings({ dark_mode: e.target.checked })}
-            />
+            <div className="toggle-content">
+              <div className="toggle-label">
+                <span className="label-icon">⭐</span>
+                <div>
+                  <span className="toggle-title">Feedback Popups</span>
+                  <span className="toggle-description">
+                    Quick rating popups after each stop
+                  </span>
+                </div>
+              </div>
+              <label className="toggle-switch">
+                <input
+                  type="checkbox"
+                  checked={settings.feedback_popups}
+                  onChange={(e) =>
+                    updateSettings({ feedback_popups: e.target.checked })
+                  }
+                />
+                <span className="toggle-slider" />
+              </label>
+            </div>
+          </div>
+
+          <div className="setting-item toggle-setting">
+            <div className="toggle-content">
+              <div className="toggle-label">
+                <span className="label-icon">🌙</span>
+                <div>
+                  <span className="toggle-title">Dark Mode</span>
+                  <span className="toggle-description">
+                    Use dark theme for the app
+                  </span>
+                </div>
+              </div>
+              <label className="toggle-switch">
+                <input
+                  type="checkbox"
+                  checked={settings.dark_mode}
+                  onChange={(e) => updateSettings({ dark_mode: e.target.checked })}
+                />
+                <span className="toggle-slider" />
+              </label>
+            </div>
           </div>
         </section>
 
-        <section className="settings-section">
-          <h2>About</h2>
+        <section className="settings-section glass-card about-section">
+          <div className="section-header">
+            <span className="section-icon">ℹ️</span>
+            <h2>About</h2>
+          </div>
           <div className="about-info">
-            <p>VistaTrek v0.1.0</p>
-            <p>Discover nature's hidden gems along your route</p>
+            <div className="app-logo">🏔️</div>
+            <h3>VistaTrek</h3>
+            <p className="version">Version 0.1.0</p>
+            <p className="motto">Discover nature's hidden gems along your route</p>
           </div>
         </section>
       </main>

@@ -1,6 +1,7 @@
 /**
  * Home Page
  * Per PRD: Landing page with trip creation and history
+ * iOS-style 2026 design with glass morphism
  */
 
 import { useState } from 'react';
@@ -86,20 +87,33 @@ export default function Home() {
   return (
     <div className="home-page">
       <header className="home-header">
-        <h1>VistaTrek</h1>
-        <p className="tagline">Discover nature's hidden gems along your route</p>
-        <button
-          className="settings-btn"
-          onClick={() => navigate('/settings')}
-          aria-label="Settings"
-        >
-          ⚙️
-        </button>
+        <div className="header-content">
+          <div className="brand">
+            <span className="brand-icon">🏔️</span>
+            <div className="brand-text">
+              <h1>VistaTrek</h1>
+              <p className="tagline">Discover hidden gems along your route</p>
+            </div>
+          </div>
+          <button
+            className="icon-btn glass-btn"
+            onClick={() => navigate('/settings')}
+            aria-label="Settings"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+            </svg>
+          </button>
+        </div>
       </header>
 
       <main className="home-main">
-        <section className="create-trip-section">
-          <h2>Plan a New Trip</h2>
+        <section className="create-trip-section glass-card">
+          <div className="section-header">
+            <span className="section-icon">✨</span>
+            <h2>Plan a New Trip</h2>
+          </div>
 
           <div className="form-group">
             <label htmlFor="trip-name">Trip Name</label>
@@ -109,39 +123,61 @@ export default function Home() {
               placeholder="Weekend Getaway"
               value={tripName}
               onChange={(e) => setTripName(e.target.value)}
+              className="glass-input"
             />
           </div>
 
-          <div className="form-group">
-            <label>Start Location</label>
-            <LocationSearch
-              placeholder="Where are you starting from?"
-              onSelect={setStartLocation}
-              value={startLocation}
-            />
+          <div className="location-inputs">
+            <div className="form-group">
+              <label>
+                <span className="label-icon">📍</span>
+                Start
+              </label>
+              <LocationSearch
+                placeholder="Where are you starting from?"
+                onSelect={setStartLocation}
+                value={startLocation}
+              />
+            </div>
+
+            <div className="route-line">
+              <div className="route-dot" />
+              <div className="route-dash" />
+              <div className="route-dot" />
+            </div>
+
+            <div className="form-group">
+              <label>
+                <span className="label-icon">🏁</span>
+                Destination
+              </label>
+              <LocationSearch
+                placeholder="Where are you going?"
+                onSelect={setEndLocation}
+                value={endLocation}
+              />
+            </div>
           </div>
 
           <div className="form-group">
-            <label>End Location</label>
-            <LocationSearch
-              placeholder="Where are you going?"
-              onSelect={setEndLocation}
-              value={endLocation}
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="trip-date">Date</label>
+            <label htmlFor="trip-date">
+              <span className="label-icon">📅</span>
+              Date
+            </label>
             <input
               id="trip-date"
               type="date"
               value={tripDate}
               onChange={(e) => setTripDate(e.target.value)}
+              className="glass-input"
             />
           </div>
 
           <div className="form-group">
-            <label>Trip Vibes</label>
+            <label>
+              <span className="label-icon">🎯</span>
+              Trip Vibes
+            </label>
             <div className="vibe-selector">
               {vibeOptions.map((vibe) => (
                 <button
@@ -159,20 +195,38 @@ export default function Home() {
             </div>
           </div>
 
-          {error && <p className="error-message">{error}</p>}
+          {error && (
+            <div className="error-message glass-error">
+              <span className="error-icon">⚠️</span>
+              {error}
+            </div>
+          )}
 
           <button
-            className="create-trip-btn"
+            className="create-trip-btn primary-btn"
             onClick={handleCreateTrip}
             disabled={isCreating || !startLocation || !endLocation}
           >
-            {isCreating ? 'Creating...' : 'Plan My Trip'}
+            {isCreating ? (
+              <>
+                <span className="btn-spinner" />
+                Creating...
+              </>
+            ) : (
+              <>
+                <span className="btn-icon">🚗</span>
+                Plan My Trip
+              </>
+            )}
           </button>
         </section>
 
         {tripHistory.length > 0 && (
-          <section className="trip-history-section">
-            <h2>Recent Trips</h2>
+          <section className="trip-history-section glass-card">
+            <div className="section-header">
+              <span className="section-icon">📜</span>
+              <h2>Recent Trips</h2>
+            </div>
             <TripHistoryList
               trips={tripHistory}
               onSelect={handleSelectTrip}
