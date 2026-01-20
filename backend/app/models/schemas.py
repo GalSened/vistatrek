@@ -49,6 +49,35 @@ class ChatActionType(str, Enum):
     NONE = "none"
 
 
+class ConversationPhase(str, Enum):
+    """State machine phases for conversational planning"""
+    GREETING = "greeting"
+    DESTINATION = "destination"
+    CLARIFY_LOCATION = "clarify_location"
+    DATES = "dates"
+    PREFERENCES = "preferences"
+    PLANNING = "planning"
+    PROPOSE_STOP = "propose_stop"
+    AWAIT_APPROVAL = "await_approval"
+    MODIFY_STOP = "modify_stop"
+    FINALIZE = "finalize"
+    COMPLETE = "complete"
+
+
+class StopDecision(str, Enum):
+    """User's decision on a proposed stop"""
+    APPROVE = "approve"
+    REJECT = "reject"
+    MODIFY = "modify"
+
+
+class TripPace(str, Enum):
+    """Trip pacing preference"""
+    RELAXED = "relaxed"
+    MODERATE = "moderate"
+    ACTIVE = "active"
+
+
 # =============================================================================
 # Base Models
 # =============================================================================
@@ -259,6 +288,124 @@ class WeatherData(BaseModel):
 
 
 # =============================================================================
+# Conversation Planning Models
+# =============================================================================
+
+class DateRange(BaseModel):
+    """Date range for multi-day trips"""
+    start: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$")  # YYYY-MM-DD
+    end: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$")    # YYYY-MM-DD
+
+
+class LocationEntity(BaseModel):
+    """Extracted location from user input"""
+    raw_text: str = Field(..., description="Original user input")
+    normalized: str = Field(..., description="Normalized location name")
+    coordinates: Coordinates
+    confidence: float = Field(..., ge=0, le=1)
+    alternatives: Optional[list["LocationEntity"]] = None
+    osm_id: Optional[int] = None
+    osm_type: Optional[str] = None  # node, way, relation
+    display_name: Optional[str] = None
+    country: Optional[str] = None
+    region: Optional[str] = None
+
+
+class QuickReply(BaseModel):
+    """Quick reply suggestion for chat UI"""
+    label: str
+    value: str
+    icon: Optional[str] = None
+
+
+class ProposedStop(BaseModel):
+    """A stop proposed by AI for user approval"""
+    id: str
+    poi: POI
+    reason: str = Field(..., description="Why AI suggests this stop")
+    estimated_duration_minutes: int = Field(..., ge=5, le=480)
+    order_in_trip: int = Field(..., ge=0)
+    alternatives: Optional[list[POI]] = None
+
+
+class ConversationMessage(BaseModel):
+    """A message in the conversation"""
+    id: str
+    role: str = Field(..., pattern=r"^(user|assistant|system)$")
+    content: str
+    timestamp: datetime
+    phase: Optional[ConversationPhase] = None
+    proposed_stop: Optional[ProposedStop] = None
+    location_entities: Optional[list[LocationEntity]] = None
+    quick_replies: Optional[list[QuickReply]] = None
+    is_streaming: bool = False
+
+
+class UserPreferences(BaseModel):
+    """Extracted preferences from conversation"""
+    vibes: list[str] = []
+    pace: TripPace = TripPace.MODERATE
+    interests: list[str] = []
+
+
+class ConversationState(BaseModel):
+    """Full state of a planning conversation"""
+    id: str
+    phase: ConversationPhase
+    messages: list[ConversationMessage] = []
+    created_at: datetime
+    updated_at: datetime
+
+    # Extracted parameters
+    destination: Optional[LocationEntity] = None
+    start_location: Optional[LocationEntity] = None
+    date_range: Optional[DateRange] = None
+    preferences: Optional[UserPreferences] = None
+
+    # Approved stops
+    approved_stops: list["Stop"] = []
+
+    # Current proposal
+    current_proposal: Optional[ProposedStop] = None
+
+    # Final trip ID when complete
+    trip_id: Optional[str] = None
+
+
+class ChatPlanRequest(BaseModel):
+    """Request to send a message in conversation planning"""
+    conversation_id: Optional[str] = None  # Omit for new conversation
+    message: str = Field(..., min_length=1, max_length=2000)
+    user_location: Optional[Coordinates] = None
+    language: str = Field("he", pattern=r"^(he|en)$")
+
+
+class ChatPlanResponse(BaseModel):
+    """Response from conversation planning"""
+    conversation_id: str
+    phase: ConversationPhase
+    message: ConversationMessage
+    state: Optional[ConversationState] = None
+    is_complete: bool = False
+
+
+class StopDecisionRequest(BaseModel):
+    """Request to approve/reject a proposed stop"""
+    conversation_id: str
+    stop_id: str
+    decision: StopDecision
+    modifications: Optional[dict] = None  # reason, preferredType, otherNotes
+
+
+class StopDecisionResponse(BaseModel):
+    """Response after stop decision"""
+    success: bool
+    next_phase: ConversationPhase
+    message: ConversationMessage
+    new_proposal: Optional[ProposedStop] = None
+
+
+# =============================================================================
 # Constraint Solver Models
 # =============================================================================
 
@@ -300,3 +447,5 @@ class HealthCheck(BaseModel):
 
 # Update forward references
 PlanTripResponse.model_rebuild()
+LocationEntity.model_rebuild()
+ConversationState.model_rebuild()

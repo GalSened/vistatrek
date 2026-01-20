@@ -13,6 +13,13 @@ import {
   ChatActionRequest,
   ChatActionResponse,
 } from '../types';
+import {
+  ChatPlanRequest,
+  ChatPlanResponse,
+  StopDecisionRequest,
+  StopDecisionResponse,
+  ConversationState,
+} from '../types/conversation';
 
 // =============================================================================
 // Configuration
@@ -219,6 +226,89 @@ export const chatApi = {
 };
 
 // =============================================================================
+// Chat Plan API (Conversational Planning)
+// =============================================================================
+
+export const chatPlanApi = {
+  /**
+   * Send a message in a planning conversation
+   * Omit conversationId to start a new conversation
+   */
+  async sendMessage(request: ChatPlanRequest): Promise<ChatPlanResponse> {
+    try {
+      const response = await client.post('/chat/plan', request);
+      return response.data;
+    } catch (error) {
+      handleError(error as AxiosError);
+    }
+  },
+
+  /**
+   * Handle user's decision on a proposed stop
+   */
+  async handleStopDecision(request: StopDecisionRequest): Promise<StopDecisionResponse> {
+    try {
+      const response = await client.post(
+        `/chat/plan/${request.conversationId}/stop-decision`,
+        request
+      );
+      return response.data;
+    } catch (error) {
+      handleError(error as AxiosError);
+    }
+  },
+
+  /**
+   * Get the current state of a planning conversation
+   */
+  async getConversation(conversationId: string): Promise<ConversationState> {
+    try {
+      const response = await client.get(`/chat/plan/${conversationId}`);
+      return response.data;
+    } catch (error) {
+      handleError(error as AxiosError);
+    }
+  },
+
+  /**
+   * Stream a planning response using Server-Sent Events
+   * Returns an EventSource that can be used to receive streaming chunks
+   */
+  streamMessage(
+    conversationId: string,
+    message: string,
+    language: string = 'he',
+    onChunk: (chunk: string) => void,
+    onDone: () => void,
+    onError: (error: Error) => void
+  ): EventSource {
+    const params = new URLSearchParams({
+      message,
+      language,
+    });
+    const url = `${API_BASE_URL}/chat/plan/${conversationId}/stream?${params.toString()}`;
+
+    const eventSource = new EventSource(url);
+
+    eventSource.onmessage = (event) => {
+      if (event.data === '[DONE]') {
+        eventSource.close();
+        onDone();
+      } else {
+        onChunk(event.data);
+      }
+    };
+
+    eventSource.onerror = () => {
+      eventSource.close();
+      onError(new Error('Stream connection failed'));
+    };
+
+    return eventSource;
+  },
+};
+
+// =============================================================================
 // Health Check
 // =============================================================================
 
@@ -240,5 +330,6 @@ export default {
   trips: tripApi,
   pois: poiApi,
   chat: chatApi,
+  chatPlan: chatPlanApi,
   health: healthApi,
 };

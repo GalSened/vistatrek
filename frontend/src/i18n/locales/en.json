@@ -7,6 +7,10 @@
   },
   "home": {
     "planNewTrip": "Plan a New Trip",
+    "planWithAI": "Plan with AI",
+    "planWithAIDesc": "Let's plan your trip together, step by step",
+    "startConversation": "Let's Start",
+    "quickPlan": "Quick Plan",
     "tripName": "Trip Name",
     "tripNamePlaceholder": "Weekend Getaway",
     "start": "Start",
@@ -61,6 +65,7 @@
   },
   "chat": {
     "title": "Trip Assistant",
+    "plannerTitle": "Trip Planning",
     "welcome": "Hi! I can help you modify your trip.",
     "examples": "Try saying:",
     "example1": "\"Add a coffee stop\"",
@@ -70,7 +75,25 @@
     "send": "Send",
     "clear": "Clear",
     "error": "Failed to send message. Please try again.",
-    "comingSoon": "Chat assistant coming soon! Ask questions about your trip."
+    "comingSoon": "Chat assistant coming soon! Ask questions about your trip.",
+    "newConversation": "New Conversation",
+    "approveStop": "Approve",
+    "skipStop": "Skip",
+    "suggestDifferent": "Suggest Different",
+    "addMoreStops": "Add more stops",
+    "phases": {
+      "greeting": "Greeting",
+      "destination": "Destination",
+      "clarify_location": "Clarifying Location",
+      "dates": "Dates",
+      "preferences": "Preferences",
+      "planning": "Planning",
+      "propose_stop": "Proposing Stop",
+      "await_approval": "Awaiting Approval",
+      "modify_stop": "Modifying Stop",
+      "finalize": "Finalizing",
+      "complete": "Complete"
+    }
   },
   "onboarding": {
     "welcome": {
@@ -190,6 +213,7 @@
     "confirm": "Confirm",
     "back": "Back",
     "next": "Next",
+    "or": "or",
     "km": "km",
     "min": "min",
     "hours": "hours",
@@ -197,5 +221,14 @@
     "searchLocation": "Search location...",
     "geolocationNotSupported": "Geolocation is not supported",
     "couldNotGetLocation": "Could not get location"
+  },
+  "stopTypes": {
+    "viewpoint": "Viewpoint",
+    "coffee": "Coffee",
+    "food": "Restaurant",
+    "spring": "Spring",
+    "parking": "Parking",
+    "hotel": "Hotel",
+    "custom": "Custom"
   }
 }

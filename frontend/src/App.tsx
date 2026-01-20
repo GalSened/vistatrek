@@ -7,9 +7,11 @@
 import { Routes, Route } from 'react-router-dom';
 import { UserProvider } from './context/UserContext';
 import { TripProvider } from './context/TripContext';
+import { ConversationProvider } from './context/ConversationContext';
 import Home from './pages/Home';
 import Planner from './pages/Planner';
 import Pilot from './pages/Pilot';
+import ChatPlanner from './pages/ChatPlanner';
 import Settings from './pages/Settings';
 import { ChatOverlay } from './components/chat';
 
@@ -20,6 +22,14 @@ export default function App() {
         <div className="app">
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route
+              path="/plan"
+              element={
+                <ConversationProvider>
+                  <ChatPlanner />
+                </ConversationProvider>
+              }
+            />
             <Route path="/planner" element={<Planner />} />
             <Route path="/planner/:tripId" element={<Planner />} />
             <Route path="/pilot" element={<Pilot />} />

@@ -28,6 +28,15 @@ export type PacingStatus = 'early' | 'on_time' | 'late';
 export type NavApp = 'waze' | 'google' | 'apple';
 
 // =============================================================================
+// Date Range (for multi-day trips)
+// =============================================================================
+
+export interface DateRange {
+  start: string;  // YYYY-MM-DD
+  end: string;    // YYYY-MM-DD
+}
+
+// =============================================================================
 // Stop Model
 // =============================================================================
 
@@ -79,8 +88,12 @@ export interface Trip {
   // Planning inputs
   start_location: Coordinates;
   end_location: Coordinates;
-  date: string;  // YYYY-MM-DD
+  date: string;  // YYYY-MM-DD (single day trips)
+  dateRange?: DateRange;  // Multi-day trips
   vibes?: string[];  // ['nature', 'chill', 'foodie']
+
+  // Conversation planning link
+  conversationId?: string;
 
   // Calculated route
   route: Route;

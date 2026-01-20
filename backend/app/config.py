@@ -23,9 +23,13 @@ class Settings(BaseSettings):
     # CORS
     cors_origins: str = "http://localhost:5173,http://localhost:3000"
 
-    # External APIs
+    # LLM Configuration (Groq API)
     llm_api_key: Optional[str] = None
-    llm_provider: str = "gemini"  # or "openai"
+    llm_provider: str = "groq"  # groq, openai, gemini
+    llm_model: str = "llama-3.3-70b-versatile"  # Fast, multilingual, Hebrew-capable
+
+    # Conversation Settings
+    conversation_ttl_hours: int = 24  # How long to keep conversation state
 
     # Rate Limiting
     rate_limit_requests: int = 100

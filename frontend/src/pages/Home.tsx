@@ -122,10 +122,33 @@ export default function Home() {
       </header>
 
       <main className="home-main">
+        {/* AI Conversational Planning CTA */}
+        <section className="ai-planning-cta glass-card">
+          <div className="section-header">
+            <span className="section-icon">🤖</span>
+            <h2>{t('home.planWithAI')}</h2>
+          </div>
+          <p className="ai-description">{t('home.planWithAIDesc')}</p>
+          <button
+            className="start-conversation-btn primary-btn"
+            onClick={() => navigate('/plan')}
+          >
+            <span className="btn-icon">💬</span>
+            {t('home.startConversation')}
+          </button>
+        </section>
+
+        <div className="section-divider">
+          <span className="divider-line" />
+          <span className="divider-text">{t('common.or')}</span>
+          <span className="divider-line" />
+        </div>
+
+        {/* Quick Plan Form */}
         <section className="create-trip-section glass-card">
           <div className="section-header">
-            <span className="section-icon">✨</span>
-            <h2>{t('home.planNewTrip')}</h2>
+            <span className="section-icon">⚡</span>
+            <h2>{t('home.quickPlan')}</h2>
           </div>
 
           <div className="form-group">

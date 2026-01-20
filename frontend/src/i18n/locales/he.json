@@ -7,6 +7,10 @@
   },
   "home": {
     "planNewTrip": "תכנון טיול חדש",
+    "planWithAI": "תכנון עם AI",
+    "planWithAIDesc": "בוא נתכנן את הטיול שלך יחד, צעד אחר צעד",
+    "startConversation": "בוא נתחיל",
+    "quickPlan": "תכנון מהיר",
     "tripName": "שם הטיול",
     "tripNamePlaceholder": "סופ\"ש בצפון",
     "start": "מוצא",
@@ -61,6 +65,7 @@
   },
   "chat": {
     "title": "עוזר הטיול",
+    "plannerTitle": "תכנון טיול",
     "welcome": "היי! אני יכול לעזור לך לשנות את הטיול שלך.",
     "examples": "נסה לומר:",
     "example1": "\"הוסף תחנת קפה\"",
@@ -70,7 +75,25 @@
     "send": "שלח",
     "clear": "נקה",
     "error": "שליחת ההודעה נכשלה. נסה שוב.",
-    "comingSoon": "עוזר הצ'אט בקרוב! שאל שאלות על הטיול שלך."
+    "comingSoon": "עוזר הצ'אט בקרוב! שאל שאלות על הטיול שלך.",
+    "newConversation": "שיחה חדשה",
+    "approveStop": "מאשר",
+    "skipStop": "דלג",
+    "suggestDifferent": "הצע משהו אחר",
+    "addMoreStops": "תוסיף עוד תחנות",
+    "phases": {
+      "greeting": "ברכות",
+      "destination": "יעד",
+      "clarify_location": "הבהרת מיקום",
+      "dates": "תאריכים",
+      "preferences": "העדפות",
+      "planning": "תכנון",
+      "propose_stop": "הצעת תחנה",
+      "await_approval": "ממתין לאישור",
+      "modify_stop": "שינוי תחנה",
+      "finalize": "סיכום",
+      "complete": "הושלם"
+    }
   },
   "onboarding": {
     "welcome": {
@@ -190,6 +213,7 @@
     "confirm": "אשר",
     "back": "חזרה",
     "next": "הבא",
+    "or": "או",
     "km": "ק\"מ",
     "min": "דקות",
     "hours": "שעות",
@@ -197,5 +221,14 @@
     "searchLocation": "חפש מיקום...",
     "geolocationNotSupported": "מיקום לא נתמך",
     "couldNotGetLocation": "לא ניתן לקבל מיקום"
+  },
+  "stopTypes": {
+    "viewpoint": "תצפית",
+    "coffee": "קפה",
+    "food": "מסעדה",
+    "spring": "מעיין",
+    "parking": "חניה",
+    "hotel": "מלון",
+    "custom": "מותאם אישית"
   }
 }
