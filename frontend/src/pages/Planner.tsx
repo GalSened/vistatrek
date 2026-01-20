@@ -5,6 +5,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useTrip } from '../context/TripContext';
 import TripMap from '../components/map/TripMap';
 import StopList from '../components/stops/StopList';
@@ -18,6 +19,7 @@ type ViewMode = 'map' | 'list' | 'split';
 export default function Planner() {
   const navigate = useNavigate();
   const { tripId } = useParams();
+  const { t } = useTranslation();
   const {
     currentTrip,
     setTrip,
@@ -46,8 +48,8 @@ export default function Planner() {
         try {
           const trip = await tripApi.get(tripId);
           setTrip(trip);
-        } catch (err) {
-          setError('Failed to load trip');
+        } catch {
+          setError(t('planner.failedToLoad'));
         } finally {
           setIsLoading(false);
         }
@@ -87,7 +89,7 @@ export default function Planner() {
           setSuggestions(response.micro_stops);
         } catch (err) {
           console.error('Route planning failed:', err);
-          setError('Failed to plan route. Please try again.');
+          setError(t('planner.failedToPlan'));
         } finally {
           setIsPlanningRoute(false);
         }
@@ -112,7 +114,7 @@ export default function Planner() {
   if (isLoading) {
     return (
       <div className="planner-page loading">
-        <LoadingSpinner message="Loading trip..." />
+        <LoadingSpinner message={t('planner.loadingTrip')} />
       </div>
     );
   }
@@ -120,8 +122,8 @@ export default function Planner() {
   if (!currentTrip) {
     return (
       <div className="planner-page error">
-        <p>{error || 'No trip selected'}</p>
-        <button onClick={() => navigate('/')}>Go Home</button>
+        <p>{error || t('planner.noTripSelected')}</p>
+        <button onClick={() => navigate('/')}>{t('planner.goHome')}</button>
       </div>
     );
   }
@@ -130,7 +132,7 @@ export default function Planner() {
     <div className={`planner-page view-${viewMode}`}>
       <header className="planner-header">
         <button className="back-btn" onClick={() => navigate('/')}>
-          ← Back
+          ← {t('planner.back')}
         </button>
         <h1>{currentTrip.name}</h1>
         <div className="view-toggle">
@@ -138,19 +140,19 @@ export default function Planner() {
             className={viewMode === 'map' ? 'active' : ''}
             onClick={() => setViewMode('map')}
           >
-            Map
+            {t('planner.map')}
           </button>
           <button
             className={viewMode === 'split' ? 'active' : ''}
             onClick={() => setViewMode('split')}
           >
-            Split
+            {t('planner.split')}
           </button>
           <button
             className={viewMode === 'list' ? 'active' : ''}
             onClick={() => setViewMode('list')}
           >
-            List
+            {t('planner.list')}
           </button>
         </div>
       </header>
@@ -159,7 +161,7 @@ export default function Planner() {
         {(viewMode === 'map' || viewMode === 'split') && (
           <div className="map-container">
             {isPlanningRoute ? (
-              <LoadingSpinner message="Planning route..." />
+              <LoadingSpinner message={t('planner.planningRoute')} />
             ) : (
               <TripMap
                 route={currentTrip.route}
@@ -176,7 +178,7 @@ export default function Planner() {
         {(viewMode === 'list' || viewMode === 'split') && (
           <div className="stops-container">
             <section className="stops-section">
-              <h2>Your Stops ({currentTrip.stops.length})</h2>
+              <h2>{t('planner.yourStops')} ({currentTrip.stops.length})</h2>
               <StopList
                 stops={currentTrip.stops}
                 onRemove={removeStop}
@@ -187,7 +189,7 @@ export default function Planner() {
 
             {currentTrip.suggestions && currentTrip.suggestions.length > 0 && (
               <section className="suggestions-section">
-                <h2>Suggested Stops</h2>
+                <h2>{t('planner.suggestedStops')}</h2>
                 <SuggestionList
                   suggestions={currentTrip.suggestions}
                   onAdd={addSuggestionAsStop}
@@ -201,19 +203,19 @@ export default function Planner() {
       <footer className="planner-footer">
         <div className="trip-summary">
           <span className="duration">
-            {Math.round(currentTrip.route.duration_seconds / 60)} min drive
+            {Math.round(currentTrip.route.duration_seconds / 60)} {t('planner.minDrive')}
           </span>
           <span className="distance">
-            {(currentTrip.route.distance_meters / 1000).toFixed(1)} km
+            {(currentTrip.route.distance_meters / 1000).toFixed(1)} {t('common.km')}
           </span>
-          <span className="stops">{currentTrip.stops.length} stops</span>
+          <span className="stops">{currentTrip.stops.length} {t('planner.stops')}</span>
         </div>
         <button
           className="start-trip-btn"
           onClick={handleStartTrip}
           disabled={currentTrip.stops.length === 0}
         >
-          Start Trip 🚗
+          {t('planner.startTrip')} 🚗
         </button>
       </footer>
     </div>

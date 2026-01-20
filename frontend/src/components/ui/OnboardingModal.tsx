@@ -5,6 +5,7 @@
  */
 
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useUser } from '../../context/UserContext';
 import { NavApp } from '../../types';
 
@@ -15,6 +16,7 @@ interface OnboardingModalProps {
 type Step = 'welcome' | 'preferences' | 'nav-app' | 'complete';
 
 export default function OnboardingModal({ onClose }: OnboardingModalProps) {
+  const { t } = useTranslation();
   const { updateProfile, setNavApp, completeOnboarding } = useUser();
   const [step, setStep] = useState<Step>('welcome');
   const [name, setName] = useState('');
@@ -72,31 +74,30 @@ export default function OnboardingModal({ onClose }: OnboardingModalProps) {
             <div className="welcome-icon-container">
               <span className="welcome-icon">🏔️</span>
             </div>
-            <h2>Welcome to VistaTrek!</h2>
+            <h2>{t('onboarding.welcome.title')}</h2>
             <p className="welcome-subtitle">
-              Discover hidden gems along your route - viewpoints, cafes, and
-              natural wonders that make road trips unforgettable.
+              {t('onboarding.welcome.subtitle')}
             </p>
             <div className="features-preview">
               <div className="feature glass-feature">
                 <span className="feature-icon">🗺️</span>
                 <div className="feature-text">
-                  <span className="feature-title">Smart Route Planning</span>
-                  <span className="feature-desc">AI-powered stop suggestions</span>
+                  <span className="feature-title">{t('onboarding.features.smartRoute')}</span>
+                  <span className="feature-desc">{t('onboarding.features.smartRouteDesc')}</span>
                 </div>
               </div>
               <div className="feature glass-feature">
                 <span className="feature-icon">💎</span>
                 <div className="feature-text">
-                  <span className="feature-title">Golden Clusters</span>
-                  <span className="feature-desc">Perfect 3-stop combinations</span>
+                  <span className="feature-title">{t('onboarding.features.goldenClusters')}</span>
+                  <span className="feature-desc">{t('onboarding.features.goldenClustersDesc')}</span>
                 </div>
               </div>
               <div className="feature glass-feature">
                 <span className="feature-icon">🧭</span>
                 <div className="feature-text">
-                  <span className="feature-title">Pilot Mode</span>
-                  <span className="feature-desc">Real-time trip guidance</span>
+                  <span className="feature-title">{t('onboarding.features.pilotMode')}</span>
+                  <span className="feature-desc">{t('onboarding.features.pilotModeDesc')}</span>
                 </div>
               </div>
             </div>
@@ -108,17 +109,17 @@ export default function OnboardingModal({ onClose }: OnboardingModalProps) {
             <div className="step-icon-container">
               <span className="step-icon">👤</span>
             </div>
-            <h2>Tell us about yourself</h2>
-            <p className="step-subtitle">Help us personalize your trip suggestions</p>
+            <h2>{t('onboarding.preferences.title')}</h2>
+            <p className="step-subtitle">{t('onboarding.preferences.subtitle')}</p>
 
             <div className="form-group">
-              <label htmlFor="onboard-name">Your Name (optional)</label>
+              <label htmlFor="onboard-name">{t('onboarding.preferences.nameLabel')}</label>
               <input
                 id="onboard-name"
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Enter your name"
+                placeholder={t('onboarding.preferences.namePlaceholder')}
                 className="glass-input"
               />
             </div>
@@ -127,7 +128,7 @@ export default function OnboardingModal({ onClose }: OnboardingModalProps) {
               <div className="slider-header">
                 <label>
                   <span className="label-icon">🥾</span>
-                  How much do you enjoy hiking?
+                  {t('onboarding.preferences.hikingQuestion')}
                 </label>
                 <span className="value-badge">{hikingScore}</span>
               </div>
@@ -140,7 +141,7 @@ export default function OnboardingModal({ onClose }: OnboardingModalProps) {
                 className="ios-slider"
               />
               <p className="hint">
-                Higher = more challenging viewpoints suggested
+                {t('onboarding.preferences.hikingHint')}
               </p>
             </div>
 
@@ -148,7 +149,7 @@ export default function OnboardingModal({ onClose }: OnboardingModalProps) {
               <div className="slider-header">
                 <label>
                   <span className="label-icon">🍕</span>
-                  How much do you love food stops?
+                  {t('onboarding.preferences.foodieQuestion')}
                 </label>
                 <span className="value-badge">{foodieScore}</span>
               </div>
@@ -160,7 +161,7 @@ export default function OnboardingModal({ onClose }: OnboardingModalProps) {
                 onChange={(e) => setFoodieScore(parseInt(e.target.value))}
                 className="ios-slider"
               />
-              <p className="hint">Higher = more cafes and restaurants</p>
+              <p className="hint">{t('onboarding.preferences.foodieHint')}</p>
             </div>
           </div>
         )}
@@ -170,14 +171,14 @@ export default function OnboardingModal({ onClose }: OnboardingModalProps) {
             <div className="step-icon-container">
               <span className="step-icon">🧭</span>
             </div>
-            <h2>Choose your navigation app</h2>
-            <p className="step-subtitle">We'll open this app when you're ready to drive</p>
+            <h2>{t('onboarding.navApp.title')}</h2>
+            <p className="step-subtitle">{t('onboarding.navApp.subtitle')}</p>
 
             <div className="nav-app-options">
               {[
-                { value: 'waze' as NavApp, label: 'Waze', icon: '🚗', desc: 'Community traffic alerts' },
-                { value: 'google' as NavApp, label: 'Google Maps', icon: '🗺️', desc: 'Comprehensive directions' },
-                { value: 'apple' as NavApp, label: 'Apple Maps', icon: '🍎', desc: 'Native iOS integration' },
+                { value: 'waze' as NavApp, label: 'Waze', icon: '🚗', descKey: 'onboarding.navApp.wazeDesc' },
+                { value: 'google' as NavApp, label: 'Google Maps', icon: '🗺️', descKey: 'onboarding.navApp.googleDesc' },
+                { value: 'apple' as NavApp, label: 'Apple Maps', icon: '🍎', descKey: 'onboarding.navApp.appleDesc' },
               ].map((option) => (
                 <button
                   key={option.value}
@@ -190,7 +191,7 @@ export default function OnboardingModal({ onClose }: OnboardingModalProps) {
                   <span className="nav-app-icon">{option.icon}</span>
                   <div className="nav-app-text">
                     <span className="nav-app-label">{option.label}</span>
-                    <span className="nav-app-desc">{option.desc}</span>
+                    <span className="nav-app-desc">{t(option.descKey)}</span>
                   </div>
                   {selectedNavApp === option.value && (
                     <span className="check-icon">✓</span>
@@ -206,8 +207,8 @@ export default function OnboardingModal({ onClose }: OnboardingModalProps) {
             <div className="complete-icon-container">
               <span className="complete-icon">🎉</span>
             </div>
-            <h2>You're all set!</h2>
-            <p className="step-subtitle">Start planning your first adventure</p>
+            <h2>{t('onboarding.complete.title')}</h2>
+            <p className="step-subtitle">{t('onboarding.complete.subtitle')}</p>
             <div className="completion-graphic">
               <span className="mountain-icon">🏔️</span>
               <span className="car-icon">🚗</span>
@@ -219,11 +220,11 @@ export default function OnboardingModal({ onClose }: OnboardingModalProps) {
         <div className="onboarding-actions">
           {step !== 'welcome' && step !== 'complete' && (
             <button type="button" className="skip-btn glass-btn" onClick={handleSkip}>
-              Skip for now
+              {t('onboarding.skipForNow')}
             </button>
           )}
           <button type="button" className="next-btn primary-btn" onClick={handleNext}>
-            {step === 'complete' ? "Let's Go!" : 'Continue'}
+            {step === 'complete' ? t('onboarding.letsGo') : t('onboarding.continue')}
             <span className="btn-arrow">→</span>
           </button>
         </div>

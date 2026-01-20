@@ -6,6 +6,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useTrip } from '../context/TripContext';
 import { useUser } from '../context/UserContext';
 import TripMap from '../components/map/TripMap';
@@ -22,6 +23,7 @@ import { Stop, Coordinates } from '../types';
 export default function Pilot() {
   const navigate = useNavigate();
   const { tripId } = useParams();
+  const { t } = useTranslation();
   const { currentTrip, setTrip, completeStop, skipStop } = useTrip();
   const { profile, settings } = useUser();
   const { position, error: geoError, isTracking } = useGeolocation();
@@ -80,7 +82,7 @@ export default function Pilot() {
   if (isLoading) {
     return (
       <div className="pilot-page loading">
-        <LoadingSpinner message="Loading trip..." />
+        <LoadingSpinner message={t('pilot.loadingTrip')} />
       </div>
     );
   }
@@ -88,8 +90,8 @@ export default function Pilot() {
   if (!currentTrip || !currentTrip.execution) {
     return (
       <div className="pilot-page error">
-        <p>No active trip</p>
-        <button onClick={() => navigate('/')}>Go Home</button>
+        <p>{t('pilot.noActiveTrip')}</p>
+        <button onClick={() => navigate('/')}>{t('pilot.goHome')}</button>
       </div>
     );
   }
@@ -143,26 +145,26 @@ export default function Pilot() {
     return (
       <div className="pilot-page completed">
         <div className="completion-screen">
-          <h1>🎉 Trip Complete!</h1>
+          <h1>🎉 {t('pilot.tripComplete')}</h1>
           <p>
-            You visited {completedCount} of {totalStops} stops
+            {t('pilot.youVisited')} {completedCount} {t('pilot.of')} {totalStops} {t('pilot.stopsText')}
           </p>
           <div className="trip-stats">
             <div className="stat">
               <span className="value">
                 {(currentTrip.route.distance_meters / 1000).toFixed(1)}
               </span>
-              <span className="label">km traveled</span>
+              <span className="label">{t('pilot.kmTraveled')}</span>
             </div>
             <div className="stat">
               <span className="value">
                 {Math.round(currentTrip.route.duration_seconds / 60)}
               </span>
-              <span className="label">minutes</span>
+              <span className="label">{t('pilot.minutes')}</span>
             </div>
           </div>
           <button className="finish-btn" onClick={handleEndTrip}>
-            Finish
+            {t('pilot.finish')}
           </button>
         </div>
       </div>
@@ -173,7 +175,7 @@ export default function Pilot() {
     <div className="pilot-page">
       <header className="pilot-header">
         <button className="end-trip-btn" onClick={handleEndTrip}>
-          End Trip
+          {t('pilot.endTrip')}
         </button>
         <div className="progress-bar">
           <div className="progress-fill" style={{ width: `${progress}%` }} />
@@ -184,7 +186,7 @@ export default function Pilot() {
         <button
           className="chat-btn"
           onClick={() => setShowChat(!showChat)}
-          aria-label="Chat"
+          aria-label={t('pilot.chat')}
         >
           💬
         </button>
@@ -199,9 +201,9 @@ export default function Pilot() {
             <span className="planned-time">{formatTime(currentStop.planned_arrival)}</span>
           </div>
           <span className="pacing-label">
-            {pacingInfo.status === 'early' && '⏰ Ahead of schedule'}
-            {pacingInfo.status === 'on_time' && '✓ On time'}
-            {pacingInfo.status === 'late' && '⚠️ Running late'}
+            {pacingInfo.status === 'early' && `⏰ ${t('pilot.aheadOfSchedule')}`}
+            {pacingInfo.status === 'on_time' && `✓ ${t('pilot.onTime')}`}
+            {pacingInfo.status === 'late' && `⚠️ ${t('pilot.runningLate')}`}
           </span>
           {pacingInfo.suggestion && (
             <span className="pacing-suggestion">{pacingInfo.suggestion}</span>
@@ -213,7 +215,7 @@ export default function Pilot() {
       {isWithinGeofence && distanceMeters !== null && (
         <div className="geofence-indicator">
           <div className="geofence-progress" style={{ width: `${dwellProgress}%` }} />
-          <span>📍 {Math.round(distanceMeters)}m from {currentStop?.name || 'stop'}</span>
+          <span>📍 {Math.round(distanceMeters)}m {t('pilot.from')} {currentStop?.name || 'stop'}</span>
         </div>
       )}
 
@@ -248,13 +250,13 @@ export default function Pilot() {
 
         {geoError && (
           <div className="geo-warning">
-            <p>GPS tracking unavailable: {geoError.message}</p>
+            <p>{t('pilot.gpsUnavailable')}</p>
           </div>
         )}
 
         {!isTracking && !geoError && (
           <div className="geo-info">
-            <p>GPS tracking is off</p>
+            <p>{t('pilot.gpsOff')}</p>
           </div>
         )}
       </main>
@@ -262,12 +264,12 @@ export default function Pilot() {
       {showChat && (
         <div className="chat-panel">
           <div className="chat-header">
-            <h3>Trip Assistant</h3>
+            <h3>{t('chat.title')}</h3>
             <button onClick={() => setShowChat(false)}>×</button>
           </div>
           <div className="chat-body">
             <p className="chat-placeholder">
-              Chat assistant coming soon! Ask questions about your trip.
+              {t('chat.comingSoon')}
             </p>
           </div>
         </div>
@@ -277,14 +279,14 @@ export default function Pilot() {
       {showArrivalPrompt && currentStop && (
         <div className="arrival-modal-overlay">
           <div className="arrival-modal">
-            <h3>📍 You've arrived!</h3>
-            <p>It looks like you're at <strong>{currentStop.name}</strong></p>
+            <h3>📍 {t('pilot.youveArrived')}</h3>
+            <p>{t('pilot.looksLikeAt')} <strong>{currentStop.name}</strong></p>
             <div className="arrival-actions">
               <button className="confirm-btn" onClick={handleConfirmArrival}>
-                Yes, I'm here
+                {t('pilot.yesImHere')}
               </button>
               <button className="dismiss-btn" onClick={handleDismissArrival}>
-                Not yet
+                {t('pilot.notYet')}
               </button>
             </div>
           </div>
@@ -294,7 +296,7 @@ export default function Pilot() {
       {/* Wake Lock indicator (debug) */}
       {!wakeLockActive && (
         <div className="wakelock-warning">
-          Screen may turn off
+          {t('pilot.screenMayTurnOff')}
         </div>
       )}
     </div>

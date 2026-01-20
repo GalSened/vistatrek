@@ -6,6 +6,7 @@
 
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useUser } from '../context/UserContext';
 import { useTrip } from '../context/TripContext';
 import LocationSearch from '../components/ui/LocationSearch';
@@ -16,6 +17,7 @@ import { tripApi } from '../api';
 
 export default function Home() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { profile } = useUser();
   const { tripHistory, setTrip } = useTrip();
 
@@ -36,11 +38,11 @@ export default function Home() {
   const isSubmittingRef = useRef(false);
 
   const vibeOptions = [
-    { id: 'nature', label: 'Nature', emoji: '🌲' },
-    { id: 'chill', label: 'Chill', emoji: '☕' },
-    { id: 'hiking', label: 'Hiking', emoji: '🥾' },
-    { id: 'foodie', label: 'Foodie', emoji: '🍕' },
-    { id: 'adventure', label: 'Adventure', emoji: '🏔️' },
+    { id: 'nature', labelKey: 'vibes.nature', emoji: '🌲' },
+    { id: 'chill', labelKey: 'vibes.chill', emoji: '☕' },
+    { id: 'hiking', labelKey: 'vibes.hiking', emoji: '🥾' },
+    { id: 'foodie', labelKey: 'vibes.foodie', emoji: '🍕' },
+    { id: 'adventure', labelKey: 'vibes.adventure', emoji: '🏔️' },
   ];
 
   const toggleVibe = (vibeId: string) => {
@@ -102,14 +104,14 @@ export default function Home() {
           <div className="brand">
             <span className="brand-icon">🏔️</span>
             <div className="brand-text">
-              <h1>VistaTrek</h1>
-              <p className="tagline">Discover hidden gems along your route</p>
+              <h1>{t('app.name')}</h1>
+              <p className="tagline">{t('app.tagline')}</p>
             </div>
           </div>
           <button
             className="icon-btn glass-btn"
             onClick={() => navigate('/settings')}
-            aria-label="Settings"
+            aria-label={t('settings.title')}
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="3"/>
@@ -123,15 +125,15 @@ export default function Home() {
         <section className="create-trip-section glass-card">
           <div className="section-header">
             <span className="section-icon">✨</span>
-            <h2>Plan a New Trip</h2>
+            <h2>{t('home.planNewTrip')}</h2>
           </div>
 
           <div className="form-group">
-            <label htmlFor="trip-name">Trip Name</label>
+            <label htmlFor="trip-name">{t('home.tripName')}</label>
             <input
               id="trip-name"
               type="text"
-              placeholder="Weekend Getaway"
+              placeholder={t('home.tripNamePlaceholder')}
               value={tripName}
               onChange={(e) => setTripName(e.target.value)}
               maxLength={100}
@@ -143,10 +145,10 @@ export default function Home() {
             <div className="form-group">
               <label>
                 <span className="label-icon">📍</span>
-                Start
+                {t('home.start')}
               </label>
               <LocationSearch
-                placeholder="Where are you starting from?"
+                placeholder={t('home.startPlaceholder')}
                 onSelect={setStartLocation}
                 value={startLocation}
               />
@@ -161,10 +163,10 @@ export default function Home() {
             <div className="form-group">
               <label>
                 <span className="label-icon">🏁</span>
-                Destination
+                {t('home.destination')}
               </label>
               <LocationSearch
-                placeholder="Where are you going?"
+                placeholder={t('home.destinationPlaceholder')}
                 onSelect={setEndLocation}
                 value={endLocation}
               />
@@ -174,7 +176,7 @@ export default function Home() {
           <div className="form-group">
             <label htmlFor="trip-date">
               <span className="label-icon">📅</span>
-              Date
+              {t('home.date')}
             </label>
             <input
               id="trip-date"
@@ -188,7 +190,7 @@ export default function Home() {
           <div className="form-group">
             <label>
               <span className="label-icon">🎯</span>
-              Trip Vibes
+              {t('home.vibes')}
             </label>
             <div className="vibe-selector">
               {vibeOptions.map((vibe) => (
@@ -201,7 +203,7 @@ export default function Home() {
                   onClick={() => toggleVibe(vibe.id)}
                 >
                   <span className="vibe-emoji">{vibe.emoji}</span>
-                  <span className="vibe-label">{vibe.label}</span>
+                  <span className="vibe-label">{t(vibe.labelKey)}</span>
                 </button>
               ))}
             </div>
@@ -222,12 +224,12 @@ export default function Home() {
             {isCreating ? (
               <>
                 <span className="btn-spinner" />
-                Creating...
+                {t('home.creating')}
               </>
             ) : (
               <>
                 <span className="btn-icon">🚗</span>
-                Plan My Trip
+                {t('home.planMyTrip')}
               </>
             )}
           </button>
@@ -237,7 +239,7 @@ export default function Home() {
           <section className="trip-history-section glass-card">
             <div className="section-header">
               <span className="section-icon">📜</span>
-              <h2>Recent Trips</h2>
+              <h2>{t('home.recentTrips')}</h2>
             </div>
             <TripHistoryList
               trips={tripHistory}

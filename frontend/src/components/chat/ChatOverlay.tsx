@@ -10,6 +10,7 @@
  */
 
 import { useState, useRef, useEffect, FormEvent, KeyboardEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useTrip } from '../../context/TripContext';
 import { chatApi, ApiError } from '../../api/client';
 import { ChatMessage, ChatActionResponse, Coordinates } from '../../types';
@@ -22,6 +23,7 @@ interface ChatOverlayProps {
 const MAX_MESSAGE_LENGTH = 500;
 
 export function ChatOverlay({ userLocation }: ChatOverlayProps) {
+  const { t } = useTranslation();
   const { currentTrip } = useTrip();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -124,7 +126,7 @@ export function ChatOverlay({ userLocation }: ChatOverlayProps) {
       <button
         className={`chat-toggle ${isOpen ? 'chat-toggle--open' : ''}`}
         onClick={toggleChat}
-        aria-label={isOpen ? 'Close chat' : 'Open chat assistant'}
+        aria-label={isOpen ? t('common.close') : t('chat.title')}
         aria-expanded={isOpen}
       >
         {isOpen ? (
@@ -136,17 +138,17 @@ export function ChatOverlay({ userLocation }: ChatOverlayProps) {
 
       {/* Chat Panel */}
       {isOpen && (
-        <div className="chat-panel" role="dialog" aria-label="Chat assistant">
+        <div className="chat-panel" role="dialog" aria-label={t('chat.title')}>
           <header className="chat-header">
-            <h3>Trip Assistant</h3>
+            <h3>{t('chat.title')}</h3>
             <div className="chat-header__actions">
               {messages.length > 0 && (
                 <button
                   className="chat-clear-btn"
                   onClick={clearHistory}
-                  aria-label="Clear chat history"
+                  aria-label={t('chat.clear')}
                 >
-                  Clear
+                  {t('chat.clear')}
                 </button>
               )}
             </div>
@@ -155,12 +157,12 @@ export function ChatOverlay({ userLocation }: ChatOverlayProps) {
           <div className="chat-messages" role="log" aria-live="polite">
             {messages.length === 0 ? (
               <div className="chat-empty">
-                <p>Hi! I can help you modify your trip.</p>
-                <p className="chat-empty__examples">Try saying:</p>
+                <p>{t('chat.welcome')}</p>
+                <p className="chat-empty__examples">{t('chat.examples')}</p>
                 <ul>
-                  <li>"Add a coffee stop"</li>
-                  <li>"Remove the gas station"</li>
-                  <li>"Move lunch to 1pm"</li>
+                  <li>{t('chat.example1')}</li>
+                  <li>{t('chat.example2')}</li>
+                  <li>{t('chat.example3')}</li>
                 </ul>
               </div>
             ) : (
@@ -205,10 +207,10 @@ export function ChatOverlay({ userLocation }: ChatOverlayProps) {
                 value={inputValue}
                 onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
-                placeholder="Type a message..."
+                placeholder={t('chat.inputPlaceholder')}
                 disabled={isLoading}
                 maxLength={MAX_MESSAGE_LENGTH}
-                aria-label="Chat message input"
+                aria-label={t('chat.inputPlaceholder')}
               />
               <span
                 className={`chat-char-count ${remainingChars < 50 ? 'chat-char-count--warning' : ''}`}
@@ -219,9 +221,9 @@ export function ChatOverlay({ userLocation }: ChatOverlayProps) {
             <button
               type="submit"
               disabled={!inputValue.trim() || isLoading}
-              aria-label="Send message"
+              aria-label={t('chat.send')}
             >
-              Send
+              {t('chat.send')}
             </button>
           </form>
         </div>

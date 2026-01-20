@@ -4,6 +4,7 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Coordinates } from '../../types';
 
 interface LocationSearchProps {
@@ -22,10 +23,11 @@ interface SearchResult {
 const NOMINATIM_URL = 'https://nominatim.openstreetmap.org/search';
 
 export default function LocationSearch({
-  placeholder = 'Search location...',
+  placeholder,
   value,
   onSelect,
 }: LocationSearchProps) {
+  const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -122,7 +124,7 @@ export default function LocationSearch({
 
   const handleUseCurrentLocation = () => {
     if (!navigator.geolocation) {
-      alert('Geolocation is not supported');
+      alert(t('common.geolocationNotSupported'));
       return;
     }
 
@@ -132,12 +134,12 @@ export default function LocationSearch({
           lat: position.coords.latitude,
           lon: position.coords.longitude,
         };
-        setSelectedName('Current Location');
+        setSelectedName(t('common.useCurrentLocation'));
         setShowResults(false);
         onSelect(coords);
       },
-      (error) => {
-        alert(`Could not get location: ${error.message}`);
+      () => {
+        alert(t('common.couldNotGetLocation'));
       }
     );
   };
@@ -147,7 +149,7 @@ export default function LocationSearch({
       <div className="search-input-wrapper">
         <input
           type="text"
-          placeholder={placeholder}
+          placeholder={placeholder || t('common.searchLocation')}
           value={selectedName || query}
           onChange={handleInputChange}
           onFocus={() => results.length > 0 && setShowResults(true)}
@@ -158,7 +160,7 @@ export default function LocationSearch({
           type="button"
           className="current-location-btn"
           onClick={handleUseCurrentLocation}
-          title="Use current location"
+          title={t('common.useCurrentLocation')}
         >
           📍
         </button>

@@ -2,6 +2,7 @@
  * Trip History List Component
  */
 
+import { useTranslation } from 'react-i18next';
 import { Trip } from '../../types';
 import { format } from 'date-fns';
 
@@ -10,20 +11,23 @@ interface TripHistoryListProps {
   onSelect: (trip: Trip) => void;
 }
 
-const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  draft: { label: 'Draft', color: '#6b7280' },
-  active: { label: 'In Progress', color: '#10b981' },
-  completed: { label: 'Completed', color: '#3b82f6' },
+const STATUS_COLORS: Record<string, string> = {
+  draft: '#6b7280',
+  planned: '#f59e0b',
+  active: '#10b981',
+  completed: '#3b82f6',
 };
 
 export default function TripHistoryList({
   trips,
   onSelect,
 }: TripHistoryListProps) {
+  const { t } = useTranslation();
+
   if (trips.length === 0) {
     return (
       <div className="trip-history-empty">
-        <p>No trips yet. Create your first trip above!</p>
+        <p>{t('home.noTripsYet')}</p>
       </div>
     );
   }
@@ -31,7 +35,8 @@ export default function TripHistoryList({
   return (
     <ul className="trip-history-list">
       {trips.map((trip) => {
-        const statusInfo = STATUS_LABELS[trip.status] || STATUS_LABELS.draft;
+        const statusColor = STATUS_COLORS[trip.status] || STATUS_COLORS.draft;
+        const statusLabel = t(`trip.status.${trip.status}`);
         const dateStr = format(new Date(trip.created_at), 'MMM d, yyyy');
 
         return (
@@ -48,12 +53,12 @@ export default function TripHistoryList({
               <div className="trip-meta">
                 <span
                   className="trip-status"
-                  style={{ backgroundColor: statusInfo.color }}
+                  style={{ backgroundColor: statusColor }}
                 >
-                  {statusInfo.label}
+                  {statusLabel}
                 </span>
                 <span className="trip-stops">
-                  {trip.stops.length} stop{trip.stops.length !== 1 ? 's' : ''}
+                  {trip.stops.length} {trip.stops.length !== 1 ? t('home.stops') : t('home.stop')}
                 </span>
               </div>
             </button>

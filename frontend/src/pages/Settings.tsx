@@ -5,18 +5,20 @@
  */
 
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useUser } from '../context/UserContext';
 import { NavApp } from '../types';
 
 export default function Settings() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { profile, settings, updateProfile, updateSettings, setNavApp } =
     useUser();
 
-  const navAppOptions: { value: NavApp; label: string; icon: string }[] = [
-    { value: 'waze', label: 'Waze', icon: '🗺️' },
-    { value: 'google', label: 'Google Maps', icon: '📍' },
-    { value: 'apple', label: 'Apple Maps', icon: '🍎' },
+  const navAppOptions: { value: NavApp; labelKey: string; icon: string }[] = [
+    { value: 'waze', labelKey: 'settings.waze', icon: '🗺️' },
+    { value: 'google', labelKey: 'settings.googleMaps', icon: '📍' },
+    { value: 'apple', labelKey: 'settings.appleMaps', icon: '🍎' },
   ];
 
   return (
@@ -27,7 +29,7 @@ export default function Settings() {
             <path d="M19 12H5M12 19l-7-7 7-7"/>
           </svg>
         </button>
-        <h1>Settings</h1>
+        <h1>{t('settings.title')}</h1>
         <div className="header-spacer" />
       </header>
 
@@ -35,17 +37,17 @@ export default function Settings() {
         <section className="settings-section glass-card">
           <div className="section-header">
             <span className="section-icon">👤</span>
-            <h2>Profile</h2>
+            <h2>{t('settings.profile')}</h2>
           </div>
 
           <div className="setting-item">
-            <label htmlFor="profile-name">Name</label>
+            <label htmlFor="profile-name">{t('settings.name')}</label>
             <input
               id="profile-name"
               type="text"
               value={profile.name || ''}
               onChange={(e) => updateProfile({ name: e.target.value })}
-              placeholder="Your name"
+              placeholder={t('settings.namePlaceholder')}
               className="glass-input"
             />
           </div>
@@ -54,7 +56,7 @@ export default function Settings() {
             <div className="setting-label-row">
               <label>
                 <span className="label-icon">🥾</span>
-                Hiking Score
+                {t('settings.hikingScore')}
               </label>
               <span className="value-badge">{profile.hiking_score}</span>
             </div>
@@ -69,7 +71,7 @@ export default function Settings() {
               className="ios-slider"
             />
             <p className="setting-hint">
-              Higher = more challenging trails and viewpoints
+              {t('settings.hikingHint')}
             </p>
           </div>
 
@@ -77,7 +79,7 @@ export default function Settings() {
             <div className="setting-label-row">
               <label>
                 <span className="label-icon">🍕</span>
-                Foodie Score
+                {t('settings.foodieScore')}
               </label>
               <span className="value-badge">{profile.foodie_score}</span>
             </div>
@@ -92,7 +94,7 @@ export default function Settings() {
               className="ios-slider"
             />
             <p className="setting-hint">
-              Higher = more cafes and restaurants suggested
+              {t('settings.foodieHint')}
             </p>
           </div>
 
@@ -100,7 +102,7 @@ export default function Settings() {
             <div className="setting-label-row">
               <label>
                 <span className="label-icon">⏱️</span>
-                Patience Score
+                {t('settings.patienceScore')}
               </label>
               <span className="value-badge">{profile.patience_score}</span>
             </div>
@@ -115,7 +117,7 @@ export default function Settings() {
               className="ios-slider"
             />
             <p className="setting-hint">
-              Higher = more stops, longer detours OK
+              {t('settings.patienceHint')}
             </p>
           </div>
         </section>
@@ -123,11 +125,11 @@ export default function Settings() {
         <section className="settings-section glass-card">
           <div className="section-header">
             <span className="section-icon">🧭</span>
-            <h2>Navigation</h2>
+            <h2>{t('settings.navigation')}</h2>
           </div>
 
           <div className="setting-item nav-app-setting">
-            <label>Preferred Navigation App</label>
+            <label>{t('settings.preferredNavApp')}</label>
             <div className="nav-app-selector">
               {navAppOptions.map((option) => (
                 <button
@@ -139,7 +141,7 @@ export default function Settings() {
                   onClick={() => setNavApp(option.value)}
                 >
                   <span className="nav-app-icon">{option.icon}</span>
-                  <span className="nav-app-label">{option.label}</span>
+                  <span className="nav-app-label">{t(option.labelKey)}</span>
                 </button>
               ))}
             </div>
@@ -149,7 +151,7 @@ export default function Settings() {
         <section className="settings-section glass-card">
           <div className="section-header">
             <span className="section-icon">⚙️</span>
-            <h2>App Settings</h2>
+            <h2>{t('settings.appSettings')}</h2>
           </div>
 
           <div className="setting-item toggle-setting">
@@ -157,9 +159,9 @@ export default function Settings() {
               <div className="toggle-label">
                 <span className="label-icon">📡</span>
                 <div>
-                  <span className="toggle-title">GPS Tracking</span>
+                  <span className="toggle-title">{t('settings.gpsTracking')}</span>
                   <span className="toggle-description">
-                    Enable real-time location tracking during trips
+                    {t('settings.gpsTrackingDesc')}
                   </span>
                 </div>
               </div>
@@ -181,9 +183,9 @@ export default function Settings() {
               <div className="toggle-label">
                 <span className="label-icon">🔔</span>
                 <div>
-                  <span className="toggle-title">Smart Alerts</span>
+                  <span className="toggle-title">{t('settings.smartAlerts')}</span>
                   <span className="toggle-description">
-                    Get notified about timing and pacing
+                    {t('settings.smartAlertsDesc')}
                   </span>
                 </div>
               </div>
@@ -205,9 +207,9 @@ export default function Settings() {
               <div className="toggle-label">
                 <span className="label-icon">⭐</span>
                 <div>
-                  <span className="toggle-title">Feedback Popups</span>
+                  <span className="toggle-title">{t('settings.feedbackPopups')}</span>
                   <span className="toggle-description">
-                    Quick rating popups after each stop
+                    {t('settings.feedbackPopupsDesc')}
                   </span>
                 </div>
               </div>
@@ -229,9 +231,9 @@ export default function Settings() {
               <div className="toggle-label">
                 <span className="label-icon">🌙</span>
                 <div>
-                  <span className="toggle-title">Dark Mode</span>
+                  <span className="toggle-title">{t('settings.darkMode')}</span>
                   <span className="toggle-description">
-                    Use dark theme for the app
+                    {t('settings.darkModeDesc')}
                   </span>
                 </div>
               </div>
@@ -250,13 +252,13 @@ export default function Settings() {
         <section className="settings-section glass-card about-section">
           <div className="section-header">
             <span className="section-icon">ℹ️</span>
-            <h2>About</h2>
+            <h2>{t('settings.about')}</h2>
           </div>
           <div className="about-info">
             <div className="app-logo">🏔️</div>
-            <h3>VistaTrek</h3>
-            <p className="version">Version 0.1.0</p>
-            <p className="motto">Discover nature's hidden gems along your route</p>
+            <h3>{t('app.name')}</h3>
+            <p className="version">{t('app.version')} 0.1.0</p>
+            <p className="motto">{t('app.motto')}</p>
           </div>
         </section>
       </main>

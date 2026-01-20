@@ -4,51 +4,54 @@
  */
 
 /* ==========================================
-   Design Tokens
+   Design Tokens - iOS 18 Inspired
    ========================================== */
 :root {
-  /* Primary palette - refined dark with subtle warmth */
-  --bg-base: #0a0a0f;
-  --bg-primary: #111118;
-  --bg-secondary: #18181f;
-  --bg-tertiary: #1f1f28;
-  --bg-elevated: #252530;
+  /* Primary palette - deeper, richer dark mode */
+  --bg-base: #000000;
+  --bg-primary: #0d0d0f;
+  --bg-secondary: #1c1c1e;
+  --bg-tertiary: #2c2c2e;
+  --bg-elevated: #3a3a3c;
 
-  /* Glass effects */
-  --glass-bg: rgba(255, 255, 255, 0.03);
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --glass-highlight: rgba(255, 255, 255, 0.12);
+  /* Glass effects - softer, more translucent */
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-highlight: rgba(255, 255, 255, 0.15);
 
-  /* Accent colors - vibrant but refined */
-  --accent-primary: #ff6b8a;
-  --accent-primary-soft: rgba(255, 107, 138, 0.15);
-  --accent-secondary: #5ed3f3;
-  --accent-secondary-soft: rgba(94, 211, 243, 0.15);
-  --accent-success: #5ddb6d;
-  --accent-success-soft: rgba(93, 219, 109, 0.15);
-  --accent-warning: #ffb347;
-  --accent-warning-soft: rgba(255, 179, 71, 0.15);
+  /* Accent colors - iOS-inspired vibrant */
+  --accent-primary: #ff375f;
+  --accent-primary-soft: rgba(255, 55, 95, 0.18);
+  --accent-secondary: #30d158;
+  --accent-secondary-soft: rgba(48, 209, 88, 0.18);
+  --accent-success: #30d158;
+  --accent-success-soft: rgba(48, 209, 88, 0.18);
+  --accent-warning: #ff9f0a;
+  --accent-warning-soft: rgba(255, 159, 10, 0.18);
+  --accent-blue: #0a84ff;
+  --accent-blue-soft: rgba(10, 132, 255, 0.18);
 
-  /* Text hierarchy */
+  /* Text hierarchy - iOS system colors */
   --text-primary: #ffffff;
-  --text-secondary: rgba(255, 255, 255, 0.7);
-  --text-tertiary: rgba(255, 255, 255, 0.45);
-  --text-muted: rgba(255, 255, 255, 0.3);
+  --text-secondary: rgba(255, 255, 255, 0.6);
+  --text-tertiary: rgba(255, 255, 255, 0.4);
+  --text-muted: rgba(255, 255, 255, 0.25);
 
-  /* Borders */
-  --border-subtle: rgba(255, 255, 255, 0.06);
-  --border-default: rgba(255, 255, 255, 0.1);
-  --border-strong: rgba(255, 255, 255, 0.15);
+  /* Borders - subtle separators */
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-default: rgba(255, 255, 255, 0.12);
+  --border-strong: rgba(255, 255, 255, 0.18);
 
-  /* Shadows */
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6);
-  --shadow-glow-primary: 0 0 20px rgba(255, 107, 138, 0.3);
-  --shadow-glow-secondary: 0 0 20px rgba(94, 211, 243, 0.3);
+  /* Shadows - softer, more natural */
+  --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.2);
+  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.5);
+  --shadow-glow-primary: 0 4px 24px rgba(255, 55, 95, 0.4);
+  --shadow-glow-secondary: 0 4px 24px rgba(48, 209, 88, 0.4);
 
-  /* Spacing scale */
+  /* Spacing scale - tighter for mobile */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -59,19 +62,20 @@
   --space-10: 40px;
   --space-12: 48px;
 
-  /* Border radius - iOS inspired */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
-  --radius-2xl: 24px;
+  /* Border radius - rounder, more iOS */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 22px;
+  --radius-2xl: 28px;
   --radius-full: 9999px;
 
-  /* Transitions */
-  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-spring: 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* Transitions - iOS-like smooth */
+  --transition-fast: 180ms cubic-bezier(0.25, 0.1, 0.25, 1);
+  --transition-normal: 280ms cubic-bezier(0.25, 0.1, 0.25, 1);
+  --transition-slow: 400ms cubic-bezier(0.25, 0.1, 0.25, 1);
+  --transition-spring: 500ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 /* ==========================================
@@ -135,79 +139,71 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ==========================================
-   Buttons
+   Buttons - iOS Style
    ========================================== */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  padding: var(--space-3) var(--space-5);
-  border-radius: var(--radius-lg);
-  font-size: 15px;
+  padding: 14px 24px;
+  border-radius: var(--radius-full);
+  font-size: 17px;
   font-weight: 600;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
   cursor: pointer;
   border: none;
   transition: all var(--transition-normal);
   position: relative;
   overflow: hidden;
-}
-
-.btn::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(255,255,255,0.1) 0%, transparent 50%);
-  opacity: 0;
-  transition: opacity var(--transition-fast);
-}
-
-.btn:hover::before {
-  opacity: 1;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .btn:active {
-  transform: scale(0.98);
+  transform: scale(0.96);
+  opacity: 0.9;
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--accent-primary) 0%, #ff4d6d 100%);
+  background: var(--accent-primary);
   color: white;
-  box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,0.2);
+  box-shadow: var(--shadow-sm);
 }
 
 .btn-primary:hover {
-  box-shadow: var(--shadow-md), var(--shadow-glow-primary), inset 0 1px 0 rgba(255,255,255,0.2);
-  transform: translateY(-1px);
+  background: #ff4d70;
+  box-shadow: var(--shadow-md), var(--shadow-glow-primary);
 }
 
 .btn-secondary {
-  background: var(--glass-bg);
-  backdrop-filter: blur(20px);
+  background: var(--bg-tertiary);
   color: var(--text-primary);
   border: 1px solid var(--border-default);
 }
 
 .btn-secondary:hover {
-  background: var(--glass-highlight);
+  background: var(--bg-elevated);
   border-color: var(--border-strong);
 }
 
 .btn-ghost {
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--accent-blue);
+  font-weight: 500;
 }
 
 .btn-ghost:hover {
-  background: var(--glass-bg);
-  color: var(--text-primary);
+  background: var(--accent-blue-soft);
 }
 
 .btn-success {
-  background: linear-gradient(135deg, var(--accent-success) 0%, #4ac45a 100%);
+  background: var(--accent-success);
   color: white;
-  box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,0.2);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-success:hover {
+  box-shadow: var(--shadow-md), var(--shadow-glow-secondary);
 }
 
 .btn-icon {
@@ -215,10 +211,21 @@ h1, h2, h3, h4, h5, h6 {
   height: 44px;
   padding: 0;
   border-radius: var(--radius-full);
+  font-size: 20px;
+}
+
+.btn-sm {
+  padding: 10px 18px;
+  font-size: 15px;
+}
+
+.btn-lg {
+  padding: 18px 32px;
+  font-size: 18px;
 }
 
 .btn:disabled {
-  opacity: 0.4;
+  opacity: 0.35;
   cursor: not-allowed;
   transform: none !important;
 }
@@ -245,29 +252,46 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ==========================================
-   Input Fields
+   Input Fields - iOS Style
    ========================================== */
 input, select, textarea {
   width: 100%;
-  padding: var(--space-3) var(--space-4);
+  padding: 16px 18px;
   background: var(--bg-tertiary);
-  border: 1px solid var(--border-subtle);
+  border: none;
   border-radius: var(--radius-md);
   color: var(--text-primary);
-  font-size: 16px;
+  font-size: 17px;
   font-family: inherit;
   transition: all var(--transition-fast);
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 input:focus, select:focus, textarea:focus {
   outline: none;
-  border-color: var(--accent-secondary);
-  box-shadow: 0 0 0 3px var(--accent-secondary-soft);
   background: var(--bg-elevated);
+  box-shadow: 0 0 0 2px var(--accent-blue);
 }
 
 input::placeholder {
-  color: var(--text-muted);
+  color: var(--text-tertiary);
+}
+
+/* Grouped inputs - iOS style */
+.input-group {
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.input-group input {
+  border-radius: 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.input-group input:last-child {
+  border-bottom: none;
 }
 
 /* ==========================================
@@ -547,7 +571,7 @@ input[type="range"]::-webkit-slider-thumb:active {
 }
 
 /* ==========================================
-   Home Page
+   Home Page - iOS Style
    ========================================== */
 .home-page {
   height: 100%;
@@ -555,35 +579,62 @@ input[type="range"]::-webkit-slider-thumb:active {
   flex-direction: column;
   overflow-y: auto;
   padding: var(--space-6);
-  padding-bottom: 100px;
+  padding-bottom: 120px;
+  -webkit-overflow-scrolling: touch;
 }
 
 .home-header {
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: var(--space-8);
   padding-top: var(--space-4);
 }
 
-.home-header h1 {
-  font-size: 36px;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  margin-bottom: var(--space-2);
-  background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+.home-header .brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
 }
 
-.home-header p {
+.home-header .brand-icon {
+  font-size: 36px;
+}
+
+.home-header .brand-text h1 {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.home-header .brand-text p {
   color: var(--text-tertiary);
-  font-size: 16px;
+  font-size: 14px;
+  font-weight: 400;
+  margin: 0;
 }
 
 .home-header .settings-btn {
-  position: absolute;
-  top: var(--space-4);
-  right: var(--space-4);
+  background: var(--bg-tertiary);
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.home-header .settings-btn:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  transform: rotate(45deg);
 }
 
 .home-section {
@@ -594,69 +645,102 @@ input[type="range"]::-webkit-slider-thumb:active {
   font-size: 13px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   color: var(--text-tertiary);
   margin-bottom: var(--space-3);
+  padding-left: var(--space-1);
 }
 
 /* Form Group */
 .form-group {
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-5);
 }
 
 .form-group label {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   font-size: 13px;
-  font-weight: 500;
-  color: var(--text-secondary);
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
   margin-bottom: var(--space-2);
+  padding-left: var(--space-1);
 }
 
-/* Vibe Selector */
+.form-group .label-icon {
+  font-size: 14px;
+}
+
+/* Vibe Selector - iOS Chip Style */
 .vibe-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2);
+  gap: 10px;
 }
 
 .vibe-option {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-3) var(--space-4);
+  padding: 10px 16px;
   background: var(--bg-tertiary);
-  border: 1px solid var(--border-subtle);
+  border: none;
   border-radius: var(--radius-full);
   cursor: pointer;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 500;
   color: var(--text-secondary);
   transition: all var(--transition-fast);
+  -webkit-tap-highlight-color: transparent;
 }
 
 .vibe-option:hover {
-  border-color: var(--border-strong);
   background: var(--bg-elevated);
 }
 
+.vibe-option:active {
+  transform: scale(0.96);
+}
+
 .vibe-option.selected {
-  border-color: var(--accent-primary);
-  background: var(--accent-primary-soft);
-  color: var(--accent-primary);
+  background: var(--accent-primary);
+  color: white;
 }
 
 .vibe-option .vibe-icon {
-  font-size: 16px;
+  font-size: 18px;
 }
 
-/* Plan Button */
+/* Plan Button - iOS Primary Action */
 .plan-trip-btn {
   width: 100%;
-  padding: var(--space-4);
-  font-size: 17px;
+  padding: 18px var(--space-6);
+  font-size: 18px;
   font-weight: 600;
   margin-top: var(--space-6);
   border-radius: var(--radius-xl);
+  background: var(--accent-primary);
+  color: white;
+  border: none;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  transition: all var(--transition-normal);
+}
+
+.plan-trip-btn:hover {
+  box-shadow: var(--shadow-lg), var(--shadow-glow-primary);
+}
+
+.plan-trip-btn:active {
+  transform: scale(0.98);
+}
+
+.plan-trip-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
 }
 
 /* Trip History */
@@ -1708,6 +1792,31 @@ input[type="range"]::-webkit-slider-thumb:active {
   animation: scaleIn var(--transition-normal) ease;
 }
 
+/* Onboarding Modal Overlay - must cover the entire screen */
+.onboarding-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.9);
+  backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+  z-index: 1000;
+  animation: fadeIn var(--transition-fast) ease;
+}
+
+.onboarding-modal {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-2xl);
+  max-width: 400px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: scaleIn var(--transition-normal) ease;
+}
+
 .onboarding-modal h2 {
   padding: var(--space-6) var(--space-6) var(--space-4);
   font-size: 24px;
@@ -1908,27 +2017,40 @@ input[type="range"]::-webkit-slider-thumb:active {
 }
 
 /* ==========================================
-   Mobile Responsive
+   Mobile Responsive - iOS Optimized
    ========================================== */
+
+/* Tablet and below */
 @media (max-width: 768px) {
+  :root {
+    --space-6: 20px;
+    --space-8: 28px;
+  }
+
+  body {
+    font-size: 16px;
+  }
+
   .planner-content.view-split {
     flex-direction: column;
   }
 
   .planner-content.view-split .planner-map-container {
-    height: 40%;
+    height: 45%;
   }
 
   .planner-content.view-split .planner-panel {
     width: 100%;
-    height: 60%;
+    height: 55%;
     border-left: none;
     border-top: 1px solid var(--border-subtle);
   }
 
   .chat-panel {
-    width: calc(100vw - 40px);
-    right: calc(-50vw + 48px);
+    width: calc(100vw - 32px);
+    right: calc(-50vw + 44px);
+    bottom: 76px;
+    max-height: calc(100vh - 140px);
   }
 
   .pilot-stop-actions {
@@ -1937,6 +2059,140 @@ input[type="range"]::-webkit-slider-thumb:active {
 
   .pilot-stop-actions .navigate-btn {
     flex: 1 1 100%;
+  }
+
+  .home-page {
+    padding: var(--space-4);
+  }
+
+  .home-header h1 {
+    font-size: 28px;
+  }
+
+  .settings-content {
+    padding: var(--space-4);
+  }
+}
+
+/* Mobile phones */
+@media (max-width: 480px) {
+  :root {
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+    --radius-2xl: 24px;
+  }
+
+  .home-page {
+    padding: var(--space-3);
+    padding-bottom: 90px;
+  }
+
+  .home-header {
+    margin-bottom: var(--space-6);
+  }
+
+  .home-header h1 {
+    font-size: 24px;
+  }
+
+  .home-header p {
+    font-size: 14px;
+  }
+
+  .vibe-grid {
+    gap: var(--space-2);
+  }
+
+  .vibe-option {
+    padding: var(--space-2) var(--space-3);
+    font-size: 13px;
+  }
+
+  .plan-trip-btn {
+    position: fixed;
+    bottom: var(--space-4);
+    left: var(--space-4);
+    right: var(--space-4);
+    z-index: 100;
+    margin: 0;
+  }
+
+  .chat-overlay {
+    bottom: var(--space-4);
+    right: var(--space-4);
+  }
+
+  .chat-toggle {
+    width: 52px;
+    height: 52px;
+  }
+
+  .planner-header h1 {
+    font-size: 16px;
+  }
+
+  .planner-panel {
+    width: 100%;
+  }
+
+  .pilot-bottom-panel {
+    padding: var(--space-3);
+  }
+
+  .pilot-stop-card {
+    padding: var(--space-4);
+  }
+
+  .pilot-stop-name {
+    font-size: 18px;
+  }
+
+  .modal-content {
+    margin: var(--space-4);
+    max-width: calc(100vw - 32px);
+  }
+
+  .settings-card {
+    border-radius: var(--radius-lg);
+  }
+
+  .settings-item {
+    padding: var(--space-3) var(--space-4);
+  }
+
+  /* Better touch targets */
+  .btn, button {
+    min-height: 44px;
+  }
+
+  input, select, textarea {
+    min-height: 48px;
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+}
+
+/* Safe area insets for notched devices */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .home-page {
+    padding-top: calc(var(--space-6) + env(safe-area-inset-top));
+  }
+
+  .planner-header,
+  .pilot-header,
+  .settings-header {
+    padding-top: calc(var(--space-4) + env(safe-area-inset-top));
+  }
+
+  .pilot-bottom-panel {
+    padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom));
+  }
+
+  .plan-trip-btn {
+    bottom: calc(var(--space-4) + env(safe-area-inset-bottom));
+  }
+
+  .chat-overlay {
+    bottom: calc(var(--space-5) + env(safe-area-inset-bottom));
   }
 }
 
@@ -1961,23 +2217,62 @@ input[type="range"]::-webkit-slider-thumb:active {
    Enhanced Component Styles - 2026 iOS Design
    ========================================== */
 
-/* Glass Elements */
+/* Glass Elements - iOS Style */
 .glass-card {
-  background: linear-gradient(135deg, var(--glass-bg), rgba(255, 255, 255, 0.01));
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-xl);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  box-shadow: var(--shadow-md), inset 0 1px 0 var(--glass-highlight);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Create Trip Section - Main Form Card */
+.create-trip-section {
+  margin-bottom: var(--space-6);
+}
+
+.create-trip-section input,
+.create-trip-section .location-search input {
+  background: var(--bg-tertiary);
+  border: none;
+  border-radius: var(--radius-lg);
+  padding: 16px 18px;
+  color: var(--text-primary);
+  font-size: 17px;
+  width: 100%;
+  transition: all var(--transition-fast);
+}
+
+.create-trip-section input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.create-trip-section input:focus {
+  outline: none;
+  background: var(--bg-elevated);
+  box-shadow: 0 0 0 3px var(--accent-blue-soft);
+}
+
+/* Location Inputs Side by Side */
+.location-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+@media (max-width: 640px) {
+  .location-inputs {
+    grid-template-columns: 1fr;
+  }
 }
 
 .glass-input {
   background: var(--bg-tertiary);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: var(--space-3) var(--space-4);
+  border: none;
+  border-radius: var(--radius-lg);
+  padding: 16px 18px;
   color: var(--text-primary);
-  font-size: 15px;
+  font-size: 17px;
   transition: all var(--transition-fast);
 }
 
@@ -2062,32 +2357,107 @@ input[type="range"]::-webkit-slider-thumb:active {
   transform: scale(1.05);
 }
 
-/* Primary Button Enhancement */
+/* Primary Button Enhancement - iOS Style */
 .primary-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-2);
+  gap: var(--space-3);
   font-weight: 600;
-  padding: var(--space-4) var(--space-6);
-  border-radius: var(--radius-lg);
+  font-size: 17px;
+  padding: 16px 28px;
+  border-radius: var(--radius-full);
   border: none;
   cursor: pointer;
   transition: all var(--transition-spring);
+  background: var(--accent-primary);
+  color: white;
+  box-shadow: var(--shadow-glow-primary);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.primary-btn:hover:not(:disabled) {
+  transform: scale(1.02);
+  box-shadow: 0 6px 32px rgba(255, 55, 95, 0.5);
+}
+
+.primary-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.primary-btn:disabled {
+  background: var(--bg-elevated);
+  color: var(--text-tertiary);
+  box-shadow: none;
+  cursor: not-allowed;
 }
 
 .primary-btn .btn-icon,
 .primary-btn .btn-arrow {
-  font-size: 16px;
+  font-size: 18px;
 }
 
 .primary-btn .btn-spinner {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   border: 2px solid currentColor;
   border-top-color: transparent;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
+}
+
+/* Create Trip Button - Full Width iOS Style */
+.create-trip-btn {
+  width: 100%;
+  margin-top: var(--space-6);
+  min-height: 56px;
+}
+
+/* Vibe Selector - iOS Chip Style */
+.vibe-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.vibe-chip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 10px 16px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.vibe-chip:hover {
+  background: var(--bg-elevated);
+  border-color: var(--border-default);
+}
+
+.vibe-chip:active {
+  transform: scale(0.96);
+}
+
+.vibe-chip.selected {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: white;
+  box-shadow: var(--shadow-glow-primary);
+}
+
+.vibe-chip .vibe-emoji {
+  font-size: 16px;
+}
+
+.vibe-chip .vibe-label {
+  font-size: 14px;
 }
 
 /* Section Header */
@@ -2488,4 +2858,110 @@ input[type="range"]::-webkit-slider-thumb:active {
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+/* ==========================================
+   RTL (Right-to-Left) Support for Hebrew
+   ========================================== */
+[dir="rtl"] {
+  text-align: right;
+}
+
+/* Flip horizontal layouts */
+[dir="rtl"] .home-header .header-content,
+[dir="rtl"] .section-header,
+[dir="rtl"] .setting-label-row,
+[dir="rtl"] .toggle-content,
+[dir="rtl"] .toggle-label,
+[dir="rtl"] .nav-app-option,
+[dir="rtl"] .brand {
+  flex-direction: row-reverse;
+}
+
+/* Flip the route line indicator */
+[dir="rtl"] .route-line {
+  transform: scaleX(-1);
+}
+
+/* Adjust label icon spacing */
+[dir="rtl"] .label-icon {
+  margin-right: 0;
+  margin-left: var(--space-2);
+}
+
+/* Adjust back button placement */
+[dir="rtl"] .back-btn {
+  left: auto;
+  right: var(--space-4);
+}
+
+[dir="rtl"] .back-btn svg {
+  transform: scaleX(-1);
+}
+
+/* Chat message alignment */
+[dir="rtl"] .chat-message--user {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+[dir="rtl"] .chat-message--assistant {
+  margin-right: 0;
+  margin-left: auto;
+}
+
+/* Trip history item */
+[dir="rtl"] .trip-history-item {
+  flex-direction: row-reverse;
+  text-align: right;
+}
+
+/* Planner stops */
+[dir="rtl"] .stop-item {
+  flex-direction: row-reverse;
+}
+
+/* Pilot mode info */
+[dir="rtl"] .pilot-info-row {
+  flex-direction: row-reverse;
+}
+
+/* Form inputs - maintain LTR for emails/URLs */
+[dir="rtl"] input[type="email"],
+[dir="rtl"] input[type="url"],
+[dir="rtl"] input[type="number"] {
+  direction: ltr;
+  text-align: right;
+}
+
+/* Vibe selector - keep wrap direction */
+[dir="rtl"] .vibe-selector {
+  justify-content: flex-end;
+}
+
+/* Error message icon */
+[dir="rtl"] .error-message {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .glass-error {
+  flex-direction: row-reverse;
+}
+
+/* Settings page specific */
+[dir="rtl"] .settings-section h3 {
+  text-align: right;
+}
+
+[dir="rtl"] .settings-group {
+  text-align: right;
+}
+
+/* Onboarding modal */
+[dir="rtl"] .onboarding-content {
+  text-align: right;
+}
+
+[dir="rtl"] .onboarding-nav {
+  flex-direction: row-reverse;
 }
