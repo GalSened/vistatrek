@@ -5,11 +5,16 @@ Scenic route planning with Golden Cluster recommendations.
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
-from typing import Optional, Literal
+from typing import Optional, Literal, AsyncGenerator
+from enum import Enum
 import requests
 import uuid
-from datetime import datetime
+import os
+import json
+import logging
+from datetime import datetime, timedelta
 from geopy.distance import geodesic
 import math
 import urllib3
@@ -17,6 +22,12 @@ import re
 
 # Suppress SSL warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+logger = logging.getLogger(__name__)
+
+# ============== Environment Variables ==============
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "").strip()
+LLM_MODEL = os.environ.get("LLM_MODEL", "llama-3.3-70b-versatile")
 
 
 # ============== Pydantic Models ==============
@@ -176,6 +187,384 @@ class ChatActionResponse(BaseModel):
     reply: str
     action: Optional[ChatAction] = None
     updated_trip: Optional[Trip] = None
+
+
+# ============== Conversation Planning Models ==============
+
+class ConversationPhase(str, Enum):
+    """State machine phases for conversational planning"""
+    GREETING = "greeting"
+    DESTINATION = "destination"
+    CLARIFY_LOCATION = "clarify_location"
+    DATES = "dates"
+    PREFERENCES = "preferences"
+    PLANNING = "planning"
+    PROPOSE_STOP = "propose_stop"
+    AWAIT_APPROVAL = "await_approval"
+    MODIFY_STOP = "modify_stop"
+    FINALIZE = "finalize"
+    COMPLETE = "complete"
+
+
+class StopDecision(str, Enum):
+    """User's decision on a proposed stop"""
+    APPROVE = "approve"
+    REJECT = "reject"
+    MODIFY = "modify"
+
+
+class TripPace(str, Enum):
+    """Trip pacing preference"""
+    RELAXED = "relaxed"
+    MODERATE = "moderate"
+    ACTIVE = "active"
+
+
+class DateRange(BaseModel):
+    """Date range for multi-day trips"""
+    start: str  # YYYY-MM-DD
+    end: str    # YYYY-MM-DD
+
+
+class LocationEntity(BaseModel):
+    """Extracted location from user input"""
+    raw_text: str
+    normalized: str
+    coordinates: Coordinates
+    confidence: float = 0.8
+    alternatives: Optional[list["LocationEntity"]] = None
+    display_name: Optional[str] = None
+    country: Optional[str] = None
+
+
+class QuickReply(BaseModel):
+    """Quick reply suggestion for chat UI"""
+    label: str
+    value: str
+    icon: Optional[str] = None
+
+
+class ProposedStop(BaseModel):
+    """A stop proposed by AI for user approval"""
+    id: str
+    poi: POI
+    reason: str
+    estimated_duration_minutes: int = 30
+    order_in_trip: int = 0
+    alternatives: Optional[list[POI]] = None
+
+
+class ConversationMessage(BaseModel):
+    """A message in the conversation"""
+    id: str
+    role: str  # user, assistant, system
+    content: str
+    timestamp: datetime
+    phase: Optional[ConversationPhase] = None
+    proposed_stop: Optional[ProposedStop] = None
+    quick_replies: Optional[list[QuickReply]] = None
+    is_streaming: bool = False
+
+
+class UserPreferences(BaseModel):
+    """Extracted preferences from conversation"""
+    vibes: list[str] = []
+    pace: TripPace = TripPace.MODERATE
+    interests: list[str] = []
+
+
+class ConversationState(BaseModel):
+    """Full state of a planning conversation"""
+    id: str
+    phase: ConversationPhase
+    messages: list[ConversationMessage] = []
+    created_at: datetime
+    updated_at: datetime
+    destination: Optional[LocationEntity] = None
+    start_location: Optional[LocationEntity] = None
+    date_range: Optional[DateRange] = None
+    preferences: Optional[UserPreferences] = None
+    approved_stops: list[Stop] = []
+    current_proposal: Optional[ProposedStop] = None
+    trip_id: Optional[str] = None
+
+
+class ChatPlanRequest(BaseModel):
+    """Request to send a message in conversation planning"""
+    conversation_id: Optional[str] = None
+    message: str = Field(..., min_length=1, max_length=2000)
+    user_location: Optional[Coordinates] = None
+    language: str = "he"
+
+
+class ChatPlanResponse(BaseModel):
+    """Response from conversation planning"""
+    conversation_id: str
+    phase: ConversationPhase
+    message: ConversationMessage
+    state: Optional[ConversationState] = None
+    is_complete: bool = False
+
+
+class StopDecisionRequest(BaseModel):
+    """Request to approve/reject a proposed stop"""
+    conversation_id: str
+    stop_id: str
+    decision: StopDecision
+    modifications: Optional[dict] = None
+
+
+class StopDecisionResponse(BaseModel):
+    """Response after stop decision"""
+    success: bool
+    next_phase: ConversationPhase
+    message: ConversationMessage
+    new_proposal: Optional[ProposedStop] = None
+
+
+# Update forward references
+LocationEntity.model_rebuild()
+ConversationState.model_rebuild()
+
+
+# ============== Conversation Service ==============
+
+# In-memory conversation storage (serverless - recreated per cold start)
+conversations_storage: dict[str, ConversationState] = {}
+
+
+# System prompt for the AI assistant
+SYSTEM_PROMPT = """You are VistaTrek's friendly trip planning assistant. You help users plan amazing road trips in a conversational, collaborative way.
+
+LANGUAGE: Respond in the same language the user uses. If they write in Hebrew, respond in Hebrew. If English, respond in English.
+
+PERSONALITY:
+- Warm, enthusiastic, and knowledgeable about travel
+- Speak naturally, like a friend who loves travel planning
+- Keep responses concise but engaging (2-3 sentences usually)
+- Use emojis sparingly to add warmth
+
+YOUR ROLE:
+- Guide users through trip planning step by step
+- Ask ONE question at a time
+- Confirm understanding before moving on
+- Suggest interesting stops based on their preferences
+
+PHASES (follow this order):
+1. GREETING: Welcome the user, ask where they want to go
+2. DESTINATION: Understand their destination, clarify if ambiguous
+3. DATES: Ask for travel dates (when and how long)
+4. PREFERENCES: Ask about their travel style (pace, interests)
+5. PROPOSE_STOP: Suggest ONE stop at a time with a brief reason
+6. Continue proposing stops until user says they have enough
+
+IMPORTANT RULES:
+- Extract location names, dates, and preferences from user input
+- If a location is ambiguous, ask for clarification
+- Propose stops ONE at a time, wait for approval
+- When user approves all stops, summarize the trip
+
+OUTPUT FORMAT:
+For each response, output valid JSON with these fields:
+{
+  "message": "Your response text to the user",
+  "phase": "current_phase",
+  "next_phase": "phase to transition to (optional)",
+  "extracted": {
+    "destination": "location name if mentioned",
+    "start_date": "YYYY-MM-DD if mentioned",
+    "end_date": "YYYY-MM-DD if mentioned",
+    "duration_days": number if mentioned,
+    "vibes": ["list", "of", "interests"],
+    "pace": "relaxed|moderate|active"
+  },
+  "quick_replies": ["Suggested", "Quick", "Replies"]
+}
+
+Only include fields that are relevant to the current response."""
+
+
+def call_groq_api(messages: list[dict], stream: bool = False) -> str:
+    """Call Groq API using requests (synchronous for Vercel compatibility)"""
+    if not GROQ_API_KEY:
+        logger.error("GROQ_API_KEY is not set")
+        raise HTTPException(
+            status_code=503,
+            detail="Chat planning not configured (missing GROQ_API_KEY)"
+        )
+
+    try:
+        logger.info(f"Calling Groq API with model {LLM_MODEL}")
+        response = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {GROQ_API_KEY}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": LLM_MODEL,
+                "messages": messages,
+                "temperature": 0.7,
+                "max_tokens": 500,
+            },
+            timeout=30
+        )
+        logger.info(f"Groq API response status: {response.status_code}")
+
+        if response.status_code != 200:
+            logger.error(f"Groq API error: {response.status_code} - {response.text}")
+            raise HTTPException(status_code=502, detail=f"LLM service error: {response.status_code}")
+
+        data = response.json()
+        content = data["choices"][0]["message"]["content"]
+        logger.info(f"Groq API returned content of length {len(content)}")
+        return content
+    except requests.RequestException as e:
+        logger.error(f"Groq API request error: {type(e).__name__}: {e}")
+        raise HTTPException(status_code=502, detail=f"LLM service error: {str(e)}")
+    except (KeyError, IndexError) as e:
+        logger.error(f"Groq API response parsing error: {type(e).__name__}: {e}")
+        raise HTTPException(status_code=502, detail=f"LLM service response error: {str(e)}")
+    except Exception as e:
+        logger.error(f"Groq API unexpected error: {type(e).__name__}: {e}")
+        raise HTTPException(status_code=502, detail=f"LLM service unexpected error: {str(e)}")
+
+
+def parse_ai_response(response: str) -> dict:
+    """Parse AI response JSON or extract text"""
+    try:
+        json_match = re.search(r'\{[\s\S]*\}', response)
+        if json_match:
+            return json.loads(json_match.group())
+    except json.JSONDecodeError:
+        pass
+    return {"message": response}
+
+
+def build_llm_messages(state: ConversationState) -> list[dict]:
+    """Build message history for LLM"""
+    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+
+    # Add context summary
+    context_parts = [f"Phase: {state.phase.value}"]
+    if state.destination:
+        context_parts.append(f"Destination: {state.destination.normalized}")
+    if state.date_range:
+        context_parts.append(f"Dates: {state.date_range.start} to {state.date_range.end}")
+    if state.preferences:
+        context_parts.append(f"Vibes: {', '.join(state.preferences.vibes)}")
+    if state.approved_stops:
+        context_parts.append(f"Approved stops: {len(state.approved_stops)}")
+
+    if context_parts:
+        messages.append({"role": "system", "content": f"Current context:\n" + "\n".join(context_parts)})
+
+    # Add recent messages (last 10)
+    for msg in state.messages[-10:]:
+        messages.append({
+            "role": msg.role if msg.role != "system" else "assistant",
+            "content": msg.content,
+        })
+
+    return messages
+
+
+def geocode_location(query: str, language: str = "he") -> Optional[LocationEntity]:
+    """Geocode a location using Nominatim (synchronous for Vercel compatibility)"""
+    try:
+        response = requests.get(
+            "https://nominatim.openstreetmap.org/search",
+            params={
+                "q": query,
+                "format": "json",
+                "limit": 1,
+                "accept-language": language
+            },
+            headers={"User-Agent": "VistaTrek/1.0"},
+            timeout=10
+        )
+
+        if response.status_code == 200 and response.json():
+            data = response.json()[0]
+            return LocationEntity(
+                raw_text=query,
+                normalized=data.get("display_name", query).split(",")[0],
+                coordinates=Coordinates(
+                    lat=float(data["lat"]),
+                    lon=float(data["lon"])
+                ),
+                confidence=0.9,
+                display_name=data.get("display_name"),
+                country=data.get("address", {}).get("country")
+            )
+    except Exception as e:
+        logger.error(f"Geocoding error: {e}")
+    return None
+
+
+def update_state_from_extracted(
+    state: ConversationState,
+    extracted: dict,
+    language: str
+):
+    """Update conversation state from extracted data (synchronous for Vercel compatibility)"""
+    # Handle destination
+    if extracted.get("destination"):
+        location = geocode_location(extracted["destination"], language)
+        if location:
+            state.destination = location
+
+    # Handle dates
+    start_date = extracted.get("start_date")
+    end_date = extracted.get("end_date")
+    duration = extracted.get("duration_days")
+
+    if start_date:
+        if end_date:
+            state.date_range = DateRange(start=start_date, end=end_date)
+        elif duration:
+            try:
+                start = datetime.strptime(start_date, "%Y-%m-%d")
+                end = start + timedelta(days=int(duration) - 1)
+                state.date_range = DateRange(
+                    start=start_date,
+                    end=end.strftime("%Y-%m-%d")
+                )
+            except ValueError:
+                pass
+
+    # Handle preferences
+    vibes = extracted.get("vibes", [])
+    pace = extracted.get("pace")
+
+    if vibes or pace:
+        if not state.preferences:
+            state.preferences = UserPreferences(vibes=[], pace=TripPace.MODERATE, interests=[])
+        if vibes:
+            state.preferences.vibes = vibes
+        if pace:
+            try:
+                state.preferences.pace = TripPace(pace)
+            except ValueError:
+                pass
+
+
+def auto_advance_phase(state: ConversationState):
+    """Auto-advance phase based on completed data"""
+    if state.phase == ConversationPhase.GREETING and state.destination:
+        state.phase = ConversationPhase.DESTINATION
+
+    if state.phase == ConversationPhase.DESTINATION:
+        if state.destination and not state.destination.alternatives:
+            state.phase = ConversationPhase.DATES
+        elif state.destination and state.destination.alternatives:
+            state.phase = ConversationPhase.CLARIFY_LOCATION
+
+    if state.phase == ConversationPhase.DATES and state.date_range:
+        state.phase = ConversationPhase.PREFERENCES
+
+    if state.phase == ConversationPhase.PREFERENCES and state.preferences:
+        state.phase = ConversationPhase.PLANNING
 
 
 # ============== FastAPI App ==============
@@ -621,4 +1010,227 @@ async def chat_action(request: ChatActionRequest):
               "- 'Recalculate my route'\n"
               "What would you like to do?",
         action=ChatAction(type="none")
+    )
+
+
+# ============== Conversation Planning Endpoints ==============
+
+@app.get("/api/chat/debug")
+async def chat_debug():
+    """Debug endpoint to check chat configuration"""
+    return {
+        "groq_api_key_set": bool(GROQ_API_KEY),
+        "groq_api_key_prefix": GROQ_API_KEY[:10] + "..." if GROQ_API_KEY else None,
+        "llm_model": LLM_MODEL,
+        "conversations_count": len(conversations_storage)
+    }
+
+
+@app.post("/api/chat/plan", response_model=ChatPlanResponse)
+async def send_plan_message(request: ChatPlanRequest):
+    """
+    Send a message in a planning conversation.
+    Creates a new conversation if conversation_id is not provided.
+    """
+    now = datetime.utcnow()
+
+    # Create or get conversation
+    if request.conversation_id and request.conversation_id in conversations_storage:
+        state = conversations_storage[request.conversation_id]
+    else:
+        # Create new conversation
+        conversation_id = str(uuid.uuid4())
+        state = ConversationState(
+            id=conversation_id,
+            phase=ConversationPhase.GREETING,
+            messages=[],
+            created_at=now,
+            updated_at=now,
+        )
+
+        # If user provided location, store it
+        if request.user_location:
+            state.start_location = LocationEntity(
+                raw_text="Current location",
+                normalized="המיקום הנוכחי",
+                coordinates=request.user_location,
+                confidence=1.0
+            )
+
+        conversations_storage[conversation_id] = state
+
+    # Add user message to history
+    user_message = ConversationMessage(
+        id=str(uuid.uuid4()),
+        role="user",
+        content=request.message,
+        timestamp=now,
+        phase=state.phase
+    )
+    state.messages.append(user_message)
+    state.updated_at = now
+
+    # Build LLM messages and call API
+    try:
+        llm_messages = build_llm_messages(state)
+        llm_messages.append({"role": "user", "content": request.message})
+
+        ai_response = call_groq_api(llm_messages)
+        parsed = parse_ai_response(ai_response)
+
+        # Update state from extracted data
+        if "extracted" in parsed:
+            update_state_from_extracted(state, parsed["extracted"], request.language)
+
+        # Handle phase transition
+        if parsed.get("next_phase"):
+            try:
+                state.phase = ConversationPhase(parsed["next_phase"])
+            except ValueError:
+                pass
+        else:
+            # Auto-advance based on extracted data
+            auto_advance_phase(state)
+
+        # Build quick replies if provided
+        quick_replies = None
+        if parsed.get("quick_replies"):
+            quick_replies = [
+                QuickReply(label=r, value=r)
+                for r in parsed["quick_replies"][:4]
+            ]
+
+        # Create assistant message
+        assistant_message = ConversationMessage(
+            id=str(uuid.uuid4()),
+            role="assistant",
+            content=parsed.get("message", ai_response),
+            timestamp=datetime.utcnow(),
+            phase=state.phase,
+            quick_replies=quick_replies
+        )
+        state.messages.append(assistant_message)
+
+        # Check if complete
+        is_complete = state.phase == ConversationPhase.COMPLETE
+
+        return ChatPlanResponse(
+            conversation_id=state.id,
+            phase=state.phase,
+            message=assistant_message,
+            state=state,
+            is_complete=is_complete
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Chat planning error: {e}")
+
+        # Return a fallback response
+        error_message = ConversationMessage(
+            id=str(uuid.uuid4()),
+            role="assistant",
+            content="מצטער, נתקלתי בבעיה. אנא נסה שוב." if request.language == "he" else "Sorry, I encountered an issue. Please try again.",
+            timestamp=datetime.utcnow(),
+            phase=state.phase
+        )
+        state.messages.append(error_message)
+
+        return ChatPlanResponse(
+            conversation_id=state.id,
+            phase=state.phase,
+            message=error_message,
+            state=state,
+            is_complete=False
+        )
+
+
+@app.get("/api/chat/plan/{conversation_id}", response_model=ConversationState)
+async def get_conversation(conversation_id: str):
+    """Get the current state of a planning conversation."""
+    if conversation_id not in conversations_storage:
+        raise HTTPException(
+            status_code=404,
+            detail="Conversation not found. Note: Conversations are stored in memory and may be lost on server restart."
+        )
+    return conversations_storage[conversation_id]
+
+
+@app.post("/api/chat/plan/{conversation_id}/stop-decision", response_model=StopDecisionResponse)
+async def handle_stop_decision(conversation_id: str, request: StopDecisionRequest):
+    """Handle user's decision on a proposed stop."""
+    if conversation_id not in conversations_storage:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    state = conversations_storage[conversation_id]
+    now = datetime.utcnow()
+
+    # Verify there's a current proposal
+    if not state.current_proposal:
+        raise HTTPException(status_code=400, detail="No stop currently proposed")
+
+    proposal = state.current_proposal
+    decision = request.decision
+
+    if decision == StopDecision.APPROVE:
+        # Convert proposal to stop and add to approved list
+        stop = Stop(
+            id=proposal.poi.id,
+            name=proposal.poi.name,
+            type=proposal.poi.type,
+            coordinates=proposal.poi.coordinates,
+            planned_arrival=now.isoformat(),
+            planned_departure=(now + timedelta(minutes=proposal.estimated_duration_minutes)).isoformat(),
+            duration_minutes=proposal.estimated_duration_minutes,
+            osm_id=proposal.poi.osm_id,
+            tags=proposal.poi.tags,
+            is_anchor=False
+        )
+        state.approved_stops.append(stop)
+        state.current_proposal = None
+        state.phase = ConversationPhase.PROPOSE_STOP
+
+        response_text = f"מעולה! הוספתי את {proposal.poi.name} לטיול. רוצה להוסיף עוד תחנות?"
+        quick_replies = [
+            QuickReply(label="כן, עוד תחנות", value="כן"),
+            QuickReply(label="לא, זה מספיק", value="סיימתי")
+        ]
+
+    elif decision == StopDecision.REJECT:
+        state.current_proposal = None
+        state.phase = ConversationPhase.PROPOSE_STOP
+
+        response_text = f"בסדר, דילגתי על {proposal.poi.name}. רוצה שאציע משהו אחר?"
+        quick_replies = [
+            QuickReply(label="כן, הצע אחר", value="הצע משהו אחר"),
+            QuickReply(label="לא תודה", value="סיימתי")
+        ]
+
+    else:  # MODIFY
+        state.phase = ConversationPhase.MODIFY_STOP
+        response_text = f"אין בעיה, מה תרצה לשנות ב{proposal.poi.name}?"
+        quick_replies = [
+            QuickReply(label="הזמן", value="שנה את הזמן"),
+            QuickReply(label="משך הביקור", value="שנה את משך הביקור"),
+            QuickReply(label="בטל", value="בטל")
+        ]
+
+    # Create response message
+    message = ConversationMessage(
+        id=str(uuid.uuid4()),
+        role="assistant",
+        content=response_text,
+        timestamp=now,
+        phase=state.phase,
+        quick_replies=quick_replies
+    )
+    state.messages.append(message)
+    state.updated_at = now
+
+    return StopDecisionResponse(
+        success=True,
+        next_phase=state.phase,
+        message=message,
+        new_proposal=state.current_proposal
     )
