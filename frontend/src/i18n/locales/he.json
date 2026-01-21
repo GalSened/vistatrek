@@ -305,6 +305,10 @@
     "to": "עד",
     "viewOnMap": "צפה במפה",
     "allStops": "כל התחנות",
+    "map": "מפה",
+    "minDrive": "זמן נסיעה",
+    "navigate": "נווט",
+    "generatedBy": "נוצר על ידי",
     "weatherConditions": {
       "sunny": "שמשי",
       "cloudy": "מעונן",
