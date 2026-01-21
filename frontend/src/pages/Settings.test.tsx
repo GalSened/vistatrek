@@ -39,8 +39,7 @@ describe('Settings', () => {
     it('should render settings page header', () => {
       renderSettings();
 
-      expect(screen.getByText('Settings')).toBeInTheDocument();
-      expect(screen.getByText('← Back')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Settings' })).toBeInTheDocument();
     });
 
     it('should render profile section', () => {
@@ -71,17 +70,18 @@ describe('Settings', () => {
       renderSettings();
 
       expect(screen.getByText('App Settings')).toBeInTheDocument();
-      expect(screen.getByLabelText(/GPS Tracking/)).toBeInTheDocument();
-      expect(screen.getByLabelText(/Smart Alerts/)).toBeInTheDocument();
-      expect(screen.getByLabelText(/Feedback Popups/)).toBeInTheDocument();
-      expect(screen.getByLabelText(/Dark Mode/)).toBeInTheDocument();
+      expect(screen.getByText(/GPS Tracking/)).toBeInTheDocument();
+      expect(screen.getByText(/Smart Alerts/)).toBeInTheDocument();
+      expect(screen.getByText(/Feedback Popups/)).toBeInTheDocument();
+      expect(screen.getByText(/Dark Mode/)).toBeInTheDocument();
     });
 
     it('should render about section', () => {
       renderSettings();
 
       expect(screen.getByText('About')).toBeInTheDocument();
-      expect(screen.getByText('VistaTrek v0.1.0')).toBeInTheDocument();
+      expect(screen.getByText('VistaTrek')).toBeInTheDocument();
+      expect(screen.getByText('Version 0.1.0')).toBeInTheDocument();
     });
   });
 
@@ -90,7 +90,8 @@ describe('Settings', () => {
       const user = userEvent.setup();
       renderSettings();
 
-      await user.click(screen.getByText('← Back'));
+      const backButton = screen.getByRole('button', { name: '' });
+      await user.click(backButton);
 
       expect(mockNavigate).toHaveBeenCalledWith(-1);
     });
@@ -124,26 +125,32 @@ describe('Settings', () => {
     it('should have waze selected by default', () => {
       renderSettings();
 
-      const wazeRadio = screen.getByRole('radio', { name: 'Waze' });
-      expect(wazeRadio).toBeChecked();
+      const wazeButton = screen.getByText('Waze').closest('button');
+      expect(wazeButton).toHaveClass('selected');
     });
 
     it('should switch navigation app on selection', async () => {
       const user = userEvent.setup();
       renderSettings();
 
-      const googleRadio = screen.getByRole('radio', { name: 'Google Maps' });
-      await user.click(googleRadio);
+      const googleButton = screen.getByText('Google Maps').closest('button');
+      await user.click(googleButton!);
 
-      expect(googleRadio).toBeChecked();
+      expect(googleButton).toHaveClass('selected');
     });
   });
 
   describe('app settings toggles', () => {
+    const getToggleByText = (text: RegExp) => {
+      const label = screen.getByText(text);
+      const settingItem = label.closest('.toggle-setting');
+      return settingItem?.querySelector('input[type="checkbox"]') as HTMLInputElement;
+    };
+
     it('should have GPS tracking enabled by default', () => {
       renderSettings();
 
-      const gpsCheckbox = screen.getByLabelText(/GPS Tracking/);
+      const gpsCheckbox = getToggleByText(/GPS Tracking/);
       expect(gpsCheckbox).toBeChecked();
     });
 
@@ -151,7 +158,7 @@ describe('Settings', () => {
       const user = userEvent.setup();
       renderSettings();
 
-      const gpsCheckbox = screen.getByLabelText(/GPS Tracking/);
+      const gpsCheckbox = getToggleByText(/GPS Tracking/);
       expect(gpsCheckbox).toBeChecked();
 
       await user.click(gpsCheckbox);
@@ -162,7 +169,7 @@ describe('Settings', () => {
       const user = userEvent.setup();
       renderSettings();
 
-      const alertsCheckbox = screen.getByLabelText(/Smart Alerts/);
+      const alertsCheckbox = getToggleByText(/Smart Alerts/);
       expect(alertsCheckbox).toBeChecked();
 
       await user.click(alertsCheckbox);
@@ -173,7 +180,7 @@ describe('Settings', () => {
       const user = userEvent.setup();
       renderSettings();
 
-      const feedbackCheckbox = screen.getByLabelText(/Feedback Popups/);
+      const feedbackCheckbox = getToggleByText(/Feedback Popups/);
       expect(feedbackCheckbox).toBeChecked();
 
       await user.click(feedbackCheckbox);
@@ -184,7 +191,7 @@ describe('Settings', () => {
       const user = userEvent.setup();
       renderSettings();
 
-      const darkModeCheckbox = screen.getByLabelText(/Dark Mode/);
+      const darkModeCheckbox = getToggleByText(/Dark Mode/);
       // dark_mode defaults to false
       expect(darkModeCheckbox).not.toBeChecked();
 

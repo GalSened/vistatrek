@@ -220,7 +220,8 @@
     "useCurrentLocation": "השתמש במיקום נוכחי",
     "searchLocation": "חפש מיקום...",
     "geolocationNotSupported": "מיקום לא נתמך",
-    "couldNotGetLocation": "לא ניתן לקבל מיקום"
+    "couldNotGetLocation": "לא ניתן לקבל מיקום",
+    "goHome": "חזור הביתה"
   },
   "stopTypes": {
     "viewpoint": "תצפית",
@@ -230,5 +231,8 @@
     "parking": "חניה",
     "hotel": "מלון",
     "custom": "מותאם אישית"
+  },
+  "errors": {
+    "pageNotFound": "העמוד לא נמצא"
   }
 }

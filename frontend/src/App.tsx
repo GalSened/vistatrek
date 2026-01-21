@@ -13,6 +13,7 @@ import Planner from './pages/Planner';
 import Pilot from './pages/Pilot';
 import ChatPlanner from './pages/ChatPlanner';
 import Settings from './pages/Settings';
+import NotFound from './pages/NotFound';
 import { ChatOverlay } from './components/chat';
 
 export default function App() {
@@ -35,6 +36,7 @@ export default function App() {
             <Route path="/pilot" element={<Pilot />} />
             <Route path="/pilot/:tripId" element={<Pilot />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="*" element={<NotFound />} />
           </Routes>
           <ChatOverlay />
         </div>

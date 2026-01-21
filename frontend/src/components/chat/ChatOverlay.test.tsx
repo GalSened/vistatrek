@@ -48,7 +48,7 @@ describe('ChatOverlay', () => {
         </TestWrapper>
       );
 
-      expect(screen.getByLabelText('Open chat assistant')).toBeInTheDocument();
+      expect(screen.getByLabelText('Trip Assistant')).toBeInTheDocument();
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 
@@ -60,7 +60,7 @@ describe('ChatOverlay', () => {
         </TestWrapper>
       );
 
-      await user.click(screen.getByLabelText('Open chat assistant'));
+      await user.click(screen.getByLabelText('Trip Assistant'));
 
       expect(screen.getByRole('dialog')).toBeInTheDocument();
       expect(screen.getByText('Trip Assistant')).toBeInTheDocument();
@@ -75,11 +75,11 @@ describe('ChatOverlay', () => {
       );
 
       // Open chat
-      await user.click(screen.getByLabelText('Open chat assistant'));
+      await user.click(screen.getByLabelText('Trip Assistant'));
       expect(screen.getByRole('dialog')).toBeInTheDocument();
 
       // Close chat
-      await user.click(screen.getByLabelText('Close chat'));
+      await user.click(screen.getByLabelText('Close'));
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
   });
@@ -93,7 +93,7 @@ describe('ChatOverlay', () => {
         </TestWrapper>
       );
 
-      await user.click(screen.getByLabelText('Open chat assistant'));
+      await user.click(screen.getByLabelText('Trip Assistant'));
 
       expect(
         screen.getByText('Hi! I can help you modify your trip.')
@@ -111,7 +111,7 @@ describe('ChatOverlay', () => {
         </TestWrapper>
       );
 
-      await user.click(screen.getByLabelText('Open chat assistant'));
+      await user.click(screen.getByLabelText('Trip Assistant'));
 
       const input = screen.getByPlaceholderText('Type a message...');
       expect(input).toBeInTheDocument();
@@ -125,7 +125,7 @@ describe('ChatOverlay', () => {
         </TestWrapper>
       );
 
-      await user.click(screen.getByLabelText('Open chat assistant'));
+      await user.click(screen.getByLabelText('Trip Assistant'));
 
       expect(screen.getByText('500')).toBeInTheDocument();
     });
@@ -138,7 +138,7 @@ describe('ChatOverlay', () => {
         </TestWrapper>
       );
 
-      await user.click(screen.getByLabelText('Open chat assistant'));
+      await user.click(screen.getByLabelText('Trip Assistant'));
 
       const input = screen.getByPlaceholderText('Type a message...');
       await user.type(input, 'Hello');
@@ -154,7 +154,7 @@ describe('ChatOverlay', () => {
         </TestWrapper>
       );
 
-      await user.click(screen.getByLabelText('Open chat assistant'));
+      await user.click(screen.getByLabelText('Trip Assistant'));
 
       const input = screen.getByPlaceholderText(
         'Type a message...'
@@ -170,9 +170,9 @@ describe('ChatOverlay', () => {
         </TestWrapper>
       );
 
-      await user.click(screen.getByLabelText('Open chat assistant'));
+      await user.click(screen.getByLabelText('Trip Assistant'));
 
-      const sendButton = screen.getByLabelText('Send message');
+      const sendButton = screen.getByLabelText('Send');
       expect(sendButton).toBeDisabled();
     });
 
@@ -184,12 +184,12 @@ describe('ChatOverlay', () => {
         </TestWrapper>
       );
 
-      await user.click(screen.getByLabelText('Open chat assistant'));
+      await user.click(screen.getByLabelText('Trip Assistant'));
 
       const input = screen.getByPlaceholderText('Type a message...');
       await user.type(input, 'Test message');
 
-      const sendButton = screen.getByLabelText('Send message');
+      const sendButton = screen.getByLabelText('Send');
       expect(sendButton).not.toBeDisabled();
     });
   });
@@ -210,11 +210,11 @@ describe('ChatOverlay', () => {
         </TestWrapper>
       );
 
-      await user.click(screen.getByLabelText('Open chat assistant'));
+      await user.click(screen.getByLabelText('Trip Assistant'));
 
       const input = screen.getByPlaceholderText('Type a message...');
       await user.type(input, 'Add a coffee stop');
-      await user.click(screen.getByLabelText('Send message'));
+      await user.click(screen.getByLabelText('Send'));
 
       // User message should appear
       expect(screen.getByText('Add a coffee stop')).toBeInTheDocument();
@@ -252,11 +252,11 @@ describe('ChatOverlay', () => {
         </TestWrapper>
       );
 
-      await user.click(screen.getByLabelText('Open chat assistant'));
+      await user.click(screen.getByLabelText('Trip Assistant'));
 
       const input = screen.getByPlaceholderText('Type a message...');
       await user.type(input, 'Test');
-      await user.click(screen.getByLabelText('Send message'));
+      await user.click(screen.getByLabelText('Send'));
 
       // Loading indicator should appear
       expect(document.querySelector('.chat-typing-indicator')).toBeInTheDocument();
@@ -280,11 +280,11 @@ describe('ChatOverlay', () => {
         </TestWrapper>
       );
 
-      await user.click(screen.getByLabelText('Open chat assistant'));
+      await user.click(screen.getByLabelText('Trip Assistant'));
 
       const input = screen.getByPlaceholderText('Type a message...');
       await user.type(input, 'Test');
-      await user.click(screen.getByLabelText('Send message'));
+      await user.click(screen.getByLabelText('Send'));
 
       await waitFor(() => {
         expect(screen.getByRole('alert')).toHaveTextContent(
@@ -308,7 +308,7 @@ describe('ChatOverlay', () => {
         </TestWrapper>
       );
 
-      await user.click(screen.getByLabelText('Open chat assistant'));
+      await user.click(screen.getByLabelText('Trip Assistant'));
 
       const input = screen.getByPlaceholderText('Type a message...');
       await user.type(input, 'Test{Enter}');
@@ -335,20 +335,20 @@ describe('ChatOverlay', () => {
         </TestWrapper>
       );
 
-      await user.click(screen.getByLabelText('Open chat assistant'));
+      await user.click(screen.getByLabelText('Trip Assistant'));
 
       // Initially no clear button
       expect(
-        screen.queryByLabelText('Clear chat history')
+        screen.queryByLabelText('Clear')
       ).not.toBeInTheDocument();
 
       // Send a message
       const input = screen.getByPlaceholderText('Type a message...');
       await user.type(input, 'Test');
-      await user.click(screen.getByLabelText('Send message'));
+      await user.click(screen.getByLabelText('Send'));
 
       await waitFor(() => {
-        expect(screen.getByLabelText('Clear chat history')).toBeInTheDocument();
+        expect(screen.getByLabelText('Clear')).toBeInTheDocument();
       });
     });
 
@@ -367,19 +367,19 @@ describe('ChatOverlay', () => {
         </TestWrapper>
       );
 
-      await user.click(screen.getByLabelText('Open chat assistant'));
+      await user.click(screen.getByLabelText('Trip Assistant'));
 
       // Send a message
       const input = screen.getByPlaceholderText('Type a message...');
       await user.type(input, 'Test');
-      await user.click(screen.getByLabelText('Send message'));
+      await user.click(screen.getByLabelText('Send'));
 
       await waitFor(() => {
         expect(screen.getByText('Test')).toBeInTheDocument();
       });
 
       // Clear history
-      await user.click(screen.getByLabelText('Clear chat history'));
+      await user.click(screen.getByLabelText('Clear'));
 
       // Messages should be gone, empty state should appear
       expect(screen.queryByText('Test')).not.toBeInTheDocument();
@@ -398,11 +398,11 @@ describe('ChatOverlay', () => {
         </TestWrapper>
       );
 
-      await user.click(screen.getByLabelText('Open chat assistant'));
+      await user.click(screen.getByLabelText('Trip Assistant'));
 
       expect(screen.getByRole('dialog')).toHaveAttribute(
         'aria-label',
-        'Chat assistant'
+        'Trip Assistant'
       );
       expect(screen.getByRole('log')).toHaveAttribute('aria-live', 'polite');
     });
@@ -415,7 +415,7 @@ describe('ChatOverlay', () => {
         </TestWrapper>
       );
 
-      await user.click(screen.getByLabelText('Open chat assistant'));
+      await user.click(screen.getByLabelText('Trip Assistant'));
 
       const input = screen.getByPlaceholderText('Type a message...');
       expect(document.activeElement).toBe(input);

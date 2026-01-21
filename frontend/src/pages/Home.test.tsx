@@ -67,14 +67,29 @@ vi.mock('../components/ui/TripHistoryList', () => ({
   ),
 }));
 
-// Mock OnboardingModal
-vi.mock('../components/ui/OnboardingModal', () => ({
-  default: ({ onClose }: { onClose: () => void }) => (
-    <div data-testid="onboarding-modal">
-      <button onClick={onClose}>Close Onboarding</button>
-    </div>
-  ),
-}));
+// Mock OnboardingModal - must call completeOnboarding from context like the real component
+vi.mock('../components/ui/OnboardingModal', async () => {
+  // Import the actual UserContext module at mock factory time
+  const UserContextModule = await vi.importActual<
+    typeof import('../context/UserContext')
+  >('../context/UserContext');
+
+  return {
+    default: ({ onClose }: { onClose: () => void }) => {
+      // Call the hook at render time (component is inside UserProvider)
+      const { completeOnboarding } = UserContextModule.useUser();
+      const handleClose = () => {
+        completeOnboarding();
+        onClose();
+      };
+      return (
+        <div data-testid="onboarding-modal">
+          <button onClick={handleClose}>Close Onboarding</button>
+        </div>
+      );
+    },
+  };
+});
 
 function renderHome() {
   return render(
@@ -100,16 +115,16 @@ describe('Home', () => {
 
       expect(screen.getByText('VistaTrek')).toBeInTheDocument();
       expect(
-        screen.getByText("Discover nature's hidden gems along your route")
+        screen.getByText('Discover hidden gems along your route')
       ).toBeInTheDocument();
     });
 
     it('should render create trip form', () => {
       renderHome();
 
-      expect(screen.getByText('Plan a New Trip')).toBeInTheDocument();
+      expect(screen.getByText('Quick Plan')).toBeInTheDocument();
       expect(screen.getByLabelText('Trip Name')).toBeInTheDocument();
-      expect(screen.getByLabelText('Date')).toBeInTheDocument();
+      expect(screen.getByText('Date')).toBeInTheDocument();
       expect(screen.getByText('Trip Vibes')).toBeInTheDocument();
     });
 

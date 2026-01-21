@@ -3484,3 +3484,46 @@ input[type="range"]::-webkit-slider-thumb:active {
 [dir="rtl"] .section-divider {
   flex-direction: row-reverse;
 }
+
+/* ==========================================
+   404 Not Found Page
+   ========================================== */
+.not-found-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  background: var(--bg-base);
+}
+
+.not-found-content {
+  text-align: center;
+  padding: var(--space-10);
+  max-width: 400px;
+  width: 100%;
+}
+
+.not-found-icon {
+  font-size: 64px;
+  display: block;
+  margin-bottom: var(--space-4);
+}
+
+.not-found-content h1 {
+  font-size: 72px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--space-2);
+  line-height: 1;
+}
+
+.not-found-content p {
+  font-size: 18px;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-6);
+}
+
+.not-found-content .primary-btn {
+  width: 100%;
+}

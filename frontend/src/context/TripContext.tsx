@@ -320,6 +320,30 @@ export function TripProvider({ children }: TripProviderProps) {
     }
   }, [state.tripHistory, state.isLoading]);
 
+  // Auto-save current trip to history when it changes
+  // Intentionally omitting state.currentTrip and state.tripHistory from deps
+  // to prevent infinite loops - we trigger on specific properties only
+  useEffect(() => {
+    if (state.currentTrip && state.currentTrip.id && !state.isLoading) {
+      const existingIndex = state.tripHistory.findIndex(
+        (t) => t.id === state.currentTrip!.id
+      );
+      if (existingIndex >= 0) {
+        // Update existing trip in history
+        const updated = [...state.tripHistory];
+        updated[existingIndex] = state.currentTrip;
+        dispatch({ type: 'SET_HISTORY', payload: updated });
+      } else {
+        // Add new trip to history
+        dispatch({
+          type: 'SET_HISTORY',
+          payload: [state.currentTrip, ...state.tripHistory],
+        });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.currentTrip?.id, state.currentTrip?.status, state.currentTrip?.updated_at, state.isLoading]);
+
   const saveToHistory = () => {
     if (state.currentTrip) {
       const existingIndex = state.tripHistory.findIndex(

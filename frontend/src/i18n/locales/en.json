@@ -220,7 +220,8 @@
     "useCurrentLocation": "Use current location",
     "searchLocation": "Search location...",
     "geolocationNotSupported": "Geolocation is not supported",
-    "couldNotGetLocation": "Could not get location"
+    "couldNotGetLocation": "Could not get location",
+    "goHome": "Go Home"
   },
   "stopTypes": {
     "viewpoint": "Viewpoint",
@@ -230,5 +231,8 @@
     "parking": "Parking",
     "hotel": "Hotel",
     "custom": "Custom"
+  },
+  "errors": {
+    "pageNotFound": "Page not found"
   }
 }

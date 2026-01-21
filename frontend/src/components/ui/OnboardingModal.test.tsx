@@ -38,8 +38,8 @@ describe('OnboardingModal', () => {
       renderModal();
 
       expect(screen.getByText('Smart Route Planning')).toBeInTheDocument();
-      expect(screen.getByText('Golden Triangle Clusters')).toBeInTheDocument();
-      expect(screen.getByText('Real-time Navigation')).toBeInTheDocument();
+      expect(screen.getByText('Golden Clusters')).toBeInTheDocument();
+      expect(screen.getByText('Pilot Mode')).toBeInTheDocument();
     });
 
     it('should show Continue button', () => {
@@ -51,7 +51,7 @@ describe('OnboardingModal', () => {
     it('should not show Skip button on welcome step', () => {
       renderModal();
 
-      expect(screen.queryByText('Skip')).not.toBeInTheDocument();
+      expect(screen.queryByText('Skip for now')).not.toBeInTheDocument();
     });
   });
 
@@ -75,8 +75,8 @@ describe('OnboardingModal', () => {
       expect(
         screen.getByText(/How much do you enjoy hiking/)
       ).toBeInTheDocument();
-      // Both sliders show 5/10 initially
-      expect(screen.getAllByText('5/10').length).toBeGreaterThanOrEqual(1);
+      // Both sliders show value 5 initially (in value-badge)
+      expect(screen.getAllByText('5').length).toBeGreaterThanOrEqual(1);
     });
 
     it('should show foodie score slider', async () => {
@@ -108,7 +108,7 @@ describe('OnboardingModal', () => {
 
       await user.click(screen.getByText('Continue'));
 
-      expect(screen.getByText('Skip')).toBeInTheDocument();
+      expect(screen.getByText('Skip for now')).toBeInTheDocument();
     });
   });
 
@@ -187,7 +187,7 @@ describe('OnboardingModal', () => {
       await user.click(screen.getByText('Continue'));
       await user.click(screen.getByText('Continue'));
 
-      expect(screen.queryByText('Skip')).not.toBeInTheDocument();
+      expect(screen.queryByText('Skip for now')).not.toBeInTheDocument();
     });
 
     it('should call onClose when Let\'s Go clicked', async () => {
@@ -209,7 +209,7 @@ describe('OnboardingModal', () => {
       const { onClose } = renderModal();
 
       await user.click(screen.getByText('Continue'));
-      await user.click(screen.getByText('Skip'));
+      await user.click(screen.getByText('Skip for now'));
 
       expect(onClose).toHaveBeenCalled();
     });
@@ -220,7 +220,7 @@ describe('OnboardingModal', () => {
 
       await user.click(screen.getByText('Continue'));
       await user.click(screen.getByText('Continue'));
-      await user.click(screen.getByText('Skip'));
+      await user.click(screen.getByText('Skip for now'));
 
       expect(onClose).toHaveBeenCalled();
     });

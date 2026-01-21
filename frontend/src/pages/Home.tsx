@@ -30,9 +30,9 @@ export default function Home() {
   const [selectedVibes, setSelectedVibes] = useState<string[]>([]);
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showOnboarding, setShowOnboarding] = useState(
-    !profile.onboarding_completed
-  );
+
+  // Derive from profile directly - no local state needed
+  const showOnboarding = !profile.onboarding_completed;
 
   // Ref-based guard to prevent double-submit (handles rapid clicks before state updates)
   const isSubmittingRef = useRef(false);
@@ -273,7 +273,7 @@ export default function Home() {
       </main>
 
       {showOnboarding && (
-        <OnboardingModal onClose={() => setShowOnboarding(false)} />
+        <OnboardingModal onClose={() => {/* Profile update hides modal automatically */}} />
       )}
     </div>
   );
