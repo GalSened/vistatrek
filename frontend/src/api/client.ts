@@ -12,6 +12,10 @@ import {
   SearchPOIsResponse,
   ChatActionRequest,
   ChatActionResponse,
+  TripReport,
+  WeatherForecast,
+  HotelRecommendation,
+  RestaurantRecommendation,
 } from '../types';
 import {
   ChatPlanRequest,
@@ -309,6 +313,80 @@ export const chatPlanApi = {
 };
 
 // =============================================================================
+// Report API
+// =============================================================================
+
+export const reportApi = {
+  /**
+   * Generate a full trip report with AI enrichment
+   * This may take several seconds as it fetches external data
+   */
+  async generate(tripId: string): Promise<TripReport> {
+    try {
+      const response = await client.post(`/trips/${tripId}/report`);
+      return response.data;
+    } catch (error) {
+      handleError(error as AxiosError);
+    }
+  },
+
+  /**
+   * Get weather forecast for specific coordinates and dates
+   * Uses Open-Meteo API (free, no API key required)
+   */
+  async getWeather(
+    lat: number,
+    lon: number,
+    dates: string[]
+  ): Promise<WeatherForecast[]> {
+    try {
+      const response = await client.post('/weather', { lat, lon, dates });
+      return response.data;
+    } catch (error) {
+      handleError(error as AxiosError);
+    }
+  },
+
+  /**
+   * Search for hotels near a location
+   * Uses OSM Overpass API
+   */
+  async searchHotels(
+    lat: number,
+    lon: number,
+    radius: number = 5000
+  ): Promise<HotelRecommendation[]> {
+    try {
+      const response = await client.get(
+        `/places/hotels?lat=${lat}&lon=${lon}&radius=${radius}`
+      );
+      return response.data;
+    } catch (error) {
+      handleError(error as AxiosError);
+    }
+  },
+
+  /**
+   * Search for restaurants near a location
+   * Uses OSM Overpass API
+   */
+  async searchRestaurants(
+    lat: number,
+    lon: number,
+    radius: number = 2000
+  ): Promise<RestaurantRecommendation[]> {
+    try {
+      const response = await client.get(
+        `/places/restaurants?lat=${lat}&lon=${lon}&radius=${radius}`
+      );
+      return response.data;
+    } catch (error) {
+      handleError(error as AxiosError);
+    }
+  },
+};
+
+// =============================================================================
 // Health Check
 // =============================================================================
 
@@ -331,5 +409,6 @@ export default {
   pois: poiApi,
   chat: chatApi,
   chatPlan: chatPlanApi,
+  report: reportApi,
   health: healthApi,
 };

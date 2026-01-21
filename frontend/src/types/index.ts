@@ -339,3 +339,168 @@ export type WithTimestamps<T> = T & {
   created_at: string;
   updated_at: string;
 };
+
+// =============================================================================
+// Trip Report Types
+// =============================================================================
+
+/**
+ * Weather forecast for a single day
+ */
+export interface WeatherForecast {
+  date: string;  // YYYY-MM-DD
+  high: number;  // Temperature in Celsius
+  low: number;   // Temperature in Celsius
+  condition: 'sunny' | 'cloudy' | 'partly_cloudy' | 'rainy' | 'stormy' | 'snowy';
+  precipitation: number;  // Percentage (0-100)
+  icon: string;  // Weather icon identifier
+}
+
+/**
+ * Hotel recommendation for trip report
+ */
+export interface HotelRecommendation {
+  id: string;
+  name: string;
+  location: Coordinates;
+  nearStop?: string;  // ID or name of nearest stop
+  rating: number;     // 1-5 stars
+  pricePerNight: number;
+  currency: string;
+  bookingUrl?: string;
+  amenities: string[];
+  imageUrl?: string;
+  address?: string;
+  phone?: string;
+}
+
+/**
+ * Restaurant recommendation for trip report
+ */
+export interface RestaurantRecommendation {
+  id: string;
+  name: string;
+  location: Coordinates;
+  nearStop?: string;  // ID or name of nearest stop
+  rating: number;     // 1-5 rating
+  priceLevel: 1 | 2 | 3 | 4;  // $ to $$$$
+  cuisine: string[];
+  specialty?: string;
+  hours?: string;
+  reservationUrl?: string;
+  address?: string;
+  phone?: string;
+}
+
+/**
+ * Daily budget breakdown
+ */
+export interface DailyBudget {
+  day: number;
+  date: string;  // YYYY-MM-DD
+  accommodation: number;
+  food: number;
+  activities: number;
+  transportation: number;
+  total: number;
+}
+
+/**
+ * Overall trip budget breakdown
+ */
+export interface BudgetBreakdown {
+  accommodation: number;
+  food: number;
+  transportation: number;
+  activities: number;
+  misc: number;
+  total: number;
+  currency: string;
+  perDay: DailyBudget[];
+}
+
+/**
+ * Packing list item
+ */
+export interface PackingItem {
+  item: string;
+  category: 'clothing' | 'gear' | 'documents' | 'toiletries' | 'electronics' | 'other';
+  essential: boolean;
+  checked?: boolean;
+}
+
+/**
+ * Emergency contact
+ */
+export interface EmergencyContact {
+  name: string;
+  number: string;
+  type: 'police' | 'ambulance' | 'fire' | 'embassy' | 'hotel' | 'other';
+}
+
+/**
+ * Local phrase for phrasebook
+ */
+export interface LocalPhrase {
+  english: string;
+  local: string;
+  pronunciation?: string;
+  category?: 'greeting' | 'emergency' | 'food' | 'directions' | 'shopping' | 'general';
+}
+
+/**
+ * Practical information section
+ */
+export interface PracticalInfo {
+  packingList: PackingItem[];
+  emergencyContacts: EmergencyContact[];
+  phrases?: LocalPhrase[];
+  tips: string[];
+  currency?: string;
+  timezone?: string;
+  language?: string;
+}
+
+/**
+ * Complete trip report data
+ */
+export interface TripReport {
+  trip: Trip;
+  hotels: HotelRecommendation[];
+  restaurants: RestaurantRecommendation[];
+  weather: WeatherForecast[];
+  budget: BudgetBreakdown;
+  practicalInfo: PracticalInfo;
+  generatedAt: string;  // ISO timestamp
+}
+
+/**
+ * Request to generate a trip report
+ */
+export interface GenerateReportRequest {
+  tripId: string;
+  includeHotels?: boolean;
+  includeRestaurants?: boolean;
+  includeWeather?: boolean;
+  includeBudget?: boolean;
+  includePracticalInfo?: boolean;
+}
+
+/**
+ * Weather API request
+ */
+export interface WeatherRequest {
+  lat: number;
+  lon: number;
+  dates: string[];  // Array of YYYY-MM-DD
+}
+
+/**
+ * Places search request (hotels/restaurants)
+ */
+export interface PlacesSearchRequest {
+  lat: number;
+  lon: number;
+  radius: number;  // meters
+  type: 'hotel' | 'restaurant';
+}

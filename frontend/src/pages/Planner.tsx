@@ -210,13 +210,21 @@ export default function Planner() {
           </span>
           <span className="stops">{currentTrip.stops.length} {t('planner.stops')}</span>
         </div>
-        <button
-          className="start-trip-btn"
-          onClick={handleStartTrip}
-          disabled={currentTrip.stops.length === 0}
-        >
-          {t('planner.startTrip')} 🚗
-        </button>
+        <div className="footer-actions">
+          <button
+            className="view-report-btn"
+            onClick={() => navigate(`/report/${currentTrip.id}`)}
+          >
+            {t('planner.viewReport')}
+          </button>
+          <button
+            className="start-trip-btn"
+            onClick={handleStartTrip}
+            disabled={currentTrip.stops.length === 0}
+          >
+            {t('planner.startTrip')}
+          </button>
+        </div>
       </footer>
     </div>
   );

@@ -1,0 +1,783 @@
+/**
+ * Trip Report Page Styles
+ * Per VistaTrek design system - iOS glass morphism
+ */
+
+/* ==========================================
+   Report Page Layout
+   ========================================== */
+
+.report-page {
+  min-height: 100vh;
+  background: var(--bg-base);
+  display: flex;
+  flex-direction: column;
+}
+
+.report-page.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ==========================================
+   Report Header
+   ========================================== */
+
+.report-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  background: rgba(13, 13, 15, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.report-header .back-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--glass-bg);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 14px;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.report-header .back-btn:hover {
+  background: var(--glass-highlight);
+}
+
+.report-header h1 {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.report-header .actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.report-header .action-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--glass-bg);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 14px;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.report-header .action-btn:hover {
+  background: var(--glass-highlight);
+}
+
+.report-header .action-btn.primary {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: white;
+}
+
+.report-header .action-btn.primary:hover {
+  opacity: 0.9;
+}
+
+/* ==========================================
+   Report Content
+   ========================================== */
+
+.report-content {
+  flex: 1;
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4);
+}
+
+/* ==========================================
+   Report Overview Card
+   ========================================== */
+
+.report-overview {
+  background: var(--glass-bg);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  margin-bottom: var(--space-6);
+}
+
+.report-overview .trip-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.report-overview .trip-date {
+  font-size: 16px;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-4);
+}
+
+.report-overview .trip-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: var(--space-4);
+}
+
+.report-overview .stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-3);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+}
+
+.report-overview .stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.report-overview .stat-label {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ==========================================
+   Report Section
+   ========================================== */
+
+.report-section {
+  background: var(--glass-bg);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+  padding: var(--space-5);
+  margin-bottom: var(--space-5);
+}
+
+.report-section h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.report-section h2 .icon {
+  font-size: 20px;
+}
+
+/* ==========================================
+   Table of Contents
+   ========================================== */
+
+.report-toc {
+  margin-bottom: var(--space-6);
+}
+
+.report-toc h2 {
+  font-size: 16px;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-3);
+}
+
+.report-toc ul {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.report-toc li a {
+  display: block;
+  padding: var(--space-2) var(--space-3);
+  background: var(--glass-bg);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 14px;
+  transition: var(--transition-fast);
+}
+
+.report-toc li a:hover {
+  background: var(--glass-highlight);
+  color: var(--text-primary);
+}
+
+/* ==========================================
+   Day Section
+   ========================================== */
+
+.day-section {
+  margin-bottom: var(--space-4);
+}
+
+.day-section h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--accent-primary);
+  margin-bottom: var(--space-3);
+}
+
+.day-section .date {
+  color: var(--text-tertiary);
+  font-weight: 400;
+}
+
+/* ==========================================
+   Stop Card (in itinerary)
+   ========================================== */
+
+.stop-card {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-2);
+}
+
+.stop-card .stop-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: var(--accent-primary);
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.stop-card .stop-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.stop-card .stop-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.stop-card .stop-type {
+  display: inline-block;
+  padding: var(--space-1) var(--space-2);
+  background: var(--accent-secondary-soft);
+  color: var(--accent-secondary);
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: var(--radius-xs);
+  text-transform: capitalize;
+  margin-left: var(--space-2);
+}
+
+.stop-card .stop-time {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: var(--space-1);
+}
+
+.stop-card .stop-duration {
+  color: var(--text-tertiary);
+  margin-left: var(--space-2);
+}
+
+.stop-card .stop-coords {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  font-family: monospace;
+  margin-top: var(--space-1);
+}
+
+.stop-card .nav-link {
+  padding: var(--space-2) var(--space-3);
+  background: var(--accent-blue-soft);
+  color: var(--accent-blue);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.stop-card .nav-link:hover {
+  background: var(--accent-blue);
+  color: white;
+}
+
+/* ==========================================
+   Map Section
+   ========================================== */
+
+.report-map {
+  height: 300px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-bottom: var(--space-4);
+}
+
+/* ==========================================
+   Weather Section
+   ========================================== */
+
+.weather-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: var(--space-3);
+}
+
+.weather-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-3);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  text-align: center;
+}
+
+.weather-day .day-label {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-bottom: var(--space-1);
+}
+
+.weather-day .weather-icon {
+  font-size: 28px;
+  margin-bottom: var(--space-1);
+}
+
+.weather-day .temps {
+  display: flex;
+  gap: var(--space-2);
+  font-size: 14px;
+}
+
+.weather-day .temp-high {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.weather-day .temp-low {
+  color: var(--text-tertiary);
+}
+
+.weather-day .precipitation {
+  font-size: 11px;
+  color: var(--accent-blue);
+  margin-top: var(--space-1);
+}
+
+/* ==========================================
+   Budget Section
+   ========================================== */
+
+.budget-total {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.budget-total .amount {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--accent-secondary);
+}
+
+.budget-total .currency {
+  font-size: 16px;
+  color: var(--text-tertiary);
+}
+
+.budget-breakdown {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: var(--space-3);
+}
+
+.budget-item {
+  padding: var(--space-3);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+}
+
+.budget-item .category {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  margin-bottom: var(--space-1);
+}
+
+.budget-item .amount {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* ==========================================
+   Packing List Section
+   ========================================== */
+
+.packing-category {
+  margin-bottom: var(--space-4);
+}
+
+.packing-category h4 {
+  font-size: 14px;
+  color: var(--text-secondary);
+  text-transform: capitalize;
+  margin-bottom: var(--space-2);
+}
+
+.packing-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.packing-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.packing-item.essential {
+  border-color: var(--accent-warning);
+}
+
+.packing-item .essential-badge {
+  font-size: 10px;
+  color: var(--accent-warning);
+}
+
+/* ==========================================
+   Emergency Contacts
+   ========================================== */
+
+.emergency-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--space-3);
+}
+
+.emergency-card {
+  padding: var(--space-3);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+}
+
+.emergency-card .type {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  margin-bottom: var(--space-1);
+}
+
+.emergency-card .name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--space-1);
+}
+
+.emergency-card .number {
+  font-size: 16px;
+  color: var(--accent-blue);
+  font-family: monospace;
+}
+
+/* ==========================================
+   Hotel/Restaurant Cards
+   ========================================== */
+
+.place-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-4);
+}
+
+.place-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.place-card .place-image {
+  height: 120px;
+  background: var(--bg-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+}
+
+.place-card .place-content {
+  padding: var(--space-4);
+}
+
+.place-card .place-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--space-1);
+}
+
+.place-card .place-rating {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: 14px;
+  color: var(--accent-warning);
+  margin-bottom: var(--space-2);
+}
+
+.place-card .place-price {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-2);
+}
+
+.place-card .place-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-bottom: var(--space-3);
+}
+
+.place-card .tag {
+  padding: var(--space-1) var(--space-2);
+  background: var(--glass-bg);
+  border-radius: var(--radius-xs);
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.place-card .place-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.place-card .place-btn {
+  flex: 1;
+  padding: var(--space-2);
+  background: var(--glass-bg);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.place-card .place-btn:hover {
+  background: var(--glass-highlight);
+  color: var(--text-primary);
+}
+
+.place-card .place-btn.primary {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: white;
+}
+
+/* ==========================================
+   Error State
+   ========================================== */
+
+.report-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  padding: var(--space-8);
+  text-align: center;
+}
+
+.report-error p {
+  color: var(--text-secondary);
+  font-size: 16px;
+}
+
+.report-error .retry-btn {
+  padding: var(--space-3) var(--space-6);
+  background: var(--accent-primary);
+  border: none;
+  border-radius: var(--radius-md);
+  color: white;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.report-error .retry-btn:hover {
+  opacity: 0.9;
+}
+
+/* ==========================================
+   Loading State
+   ========================================== */
+
+.report-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  padding: var(--space-8);
+}
+
+.report-loading .progress-steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 100%;
+  max-width: 300px;
+}
+
+.report-loading .step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  color: var(--text-tertiary);
+  font-size: 14px;
+}
+
+.report-loading .step.active {
+  color: var(--text-primary);
+}
+
+.report-loading .step.done {
+  color: var(--accent-secondary);
+}
+
+.report-loading .step-icon {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ==========================================
+   Print Styles
+   ========================================== */
+
+@media print {
+  .report-page {
+    background: white;
+    color: black;
+  }
+
+  .report-header {
+    position: static;
+    background: transparent;
+    backdrop-filter: none;
+    border-bottom: 2px solid #333;
+    padding-bottom: var(--space-4);
+    margin-bottom: var(--space-4);
+  }
+
+  .report-header .back-btn,
+  .report-header .actions {
+    display: none;
+  }
+
+  .report-section {
+    background: transparent;
+    border: 1px solid #ddd;
+    page-break-inside: avoid;
+  }
+
+  .stop-card,
+  .place-card,
+  .weather-day,
+  .budget-item,
+  .emergency-card,
+  .packing-item {
+    background: #f5f5f5;
+    border-color: #ddd;
+    color: black;
+  }
+
+  .report-overview .stat {
+    background: #f5f5f5;
+  }
+
+  a {
+    color: #0066cc;
+    text-decoration: underline;
+  }
+
+  .nav-link,
+  .place-btn {
+    display: none;
+  }
+
+  .report-map {
+    border: 1px solid #ddd;
+  }
+}
+
+/* ==========================================
+   RTL Support
+   ========================================== */
+
+[dir="rtl"] .report-header .back-btn {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .stop-card {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .stop-card .stop-type {
+  margin-left: 0;
+  margin-right: var(--space-2);
+}
+
+[dir="rtl"] .stop-card .stop-duration {
+  margin-left: 0;
+  margin-right: var(--space-2);
+}
