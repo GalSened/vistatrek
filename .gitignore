@@ -68,3 +68,4 @@ env/
 *.tsbuildinfo
 .vercel/
 .vercel
+.env*.local

@@ -25,12 +25,15 @@ export default function ChatPlanner() {
     currentProposal,
     isLoading,
     error,
+    reportUrl,
+    isGeneratingReport,
     startConversation,
     sendMessage,
     approveStop,
     rejectStop,
     modifyStop,
     resetConversation,
+    generateReport,
   } = useConversation();
 
   const language = i18n.language === 'he' ? 'he' : 'en';
@@ -182,6 +185,51 @@ export default function ChatPlanner() {
               >
                 {t('common.retry')}
               </button>
+            </div>
+          )}
+
+          {/* Finalize Section */}
+          {phase === 'finalize' && (
+            <div className="finalize-section glass-card">
+              {!reportUrl ? (
+                <>
+                  <h3>{isRTL ? '🎉 הטיול שלך מוכן!' : '🎉 Your trip is ready!'}</h3>
+                  <p>
+                    {isRTL
+                      ? 'לחץ למטה ליצירת דוח HTML שתוכל לשתף עם חברים'
+                      : 'Click below to generate a shareable HTML report'
+                    }
+                  </p>
+                  <button
+                    className="generate-report-btn primary-btn"
+                    onClick={generateReport}
+                    disabled={isGeneratingReport}
+                  >
+                    {isGeneratingReport
+                      ? (isRTL ? '⏳ יוצר דוח...' : '⏳ Generating...')
+                      : (isRTL ? '📄 צור דוח טיול' : '📄 Generate Trip Report')
+                    }
+                  </button>
+                </>
+              ) : (
+                <div className="report-ready">
+                  <h3>{isRTL ? '✅ הדוח שלך מוכן!' : '✅ Your report is ready!'}</h3>
+                  <a
+                    href={reportUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="report-link primary-btn"
+                  >
+                    {isRTL ? '🔗 צפה ושתף את הדוח' : '🔗 View & Share Report'}
+                  </a>
+                  <button
+                    className="start-new-btn secondary-btn"
+                    onClick={handleNewConversation}
+                  >
+                    {isRTL ? '🆕 התחל טיול חדש' : '🆕 Start New Trip'}
+                  </button>
+                </div>
+              )}
             </div>
           )}
 

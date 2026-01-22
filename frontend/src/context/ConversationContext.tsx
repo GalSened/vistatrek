@@ -26,6 +26,8 @@ interface ConversationContextType {
   currentProposal: ProposedStop | null;
   isLoading: boolean;
   error: string | null;
+  reportUrl: string | null;
+  isGeneratingReport: boolean;
 
   // Actions
   startConversation: (language?: 'he' | 'en') => Promise<void>;
@@ -34,6 +36,7 @@ interface ConversationContextType {
   rejectStop: (stopId: string) => Promise<void>;
   modifyStop: (stopId: string, reason?: string) => Promise<void>;
   resetConversation: () => void;
+  generateReport: () => Promise<string | null>;
 }
 
 const ConversationContext = createContext<ConversationContextType | undefined>(
@@ -51,6 +54,8 @@ export function ConversationProvider({ children }: ConversationProviderProps) {
   const [currentProposal, setCurrentProposal] = useState<ProposedStop | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [reportUrl, setReportUrl] = useState<string | null>(null);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
 
   const updateFromState = useCallback((state: Partial<ConversationState>) => {
     if (state.id) setConversationId(state.id);
@@ -205,7 +210,46 @@ export function ConversationProvider({ children }: ConversationProviderProps) {
     setCurrentProposal(null);
     setIsLoading(false);
     setError(null);
+    setReportUrl(null);
+    setIsGeneratingReport(false);
   }, []);
+
+  const generateReport = useCallback(async (): Promise<string | null> => {
+    if (!conversationId) {
+      setError('No active conversation');
+      return null;
+    }
+
+    setIsGeneratingReport(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/report/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ conversation_id: conversationId }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'Failed to generate report');
+      }
+
+      const data = await response.json();
+      if (data.report_url) {
+        setReportUrl(data.report_url);
+        return data.report_url;
+      }
+      return null;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to generate report');
+      return null;
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  }, [conversationId]);
 
   const value: ConversationContextType = {
     conversationId,
@@ -214,12 +258,15 @@ export function ConversationProvider({ children }: ConversationProviderProps) {
     currentProposal,
     isLoading,
     error,
+    reportUrl,
+    isGeneratingReport,
     startConversation,
     sendMessage,
     approveStop,
     rejectStop,
     modifyStop,
     resetConversation,
+    generateReport,
   };
 
   return (

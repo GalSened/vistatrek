@@ -183,7 +183,9 @@ def search_pois_by_vibes(
     exclude_coords: Optional[List[Dict[str, float]]] = None,
 ) -> List[Dict[str, Any]]:
     """Search Overpass for POIs matching user vibes."""
+    logger.info(f"search_pois_by_vibes called - center: {center}, vibes: {vibes}")
     if not vibes:
+        logger.info("No vibes provided, returning empty list")
         return []
 
     exclude_coords = exclude_coords or []
@@ -214,6 +216,8 @@ def search_pois_by_vibes(
             key, value = tag.split("=")
             tag_queries.append(f'node(around:{radius_m},{lat},{lon})["{key}"="{value}"]["name"];')
 
+        logger.info(f"Overpass query tags: {osm_tags[:8]}")
+
         query = f"""
         [out:json][timeout:25];
         (
@@ -233,6 +237,7 @@ def search_pois_by_vibes(
             return []
 
         elements = response.json().get("elements", [])
+        logger.info(f"Overpass returned {len(elements)} elements")
         results = []
 
         for element in elements:
@@ -331,6 +336,10 @@ def research_agent(state: TripReportState) -> Dict[str, Any]:
     destination_coords = destination.get("coordinates", {})
     preferences = state.get("preferences", {})
     user_vibes = preferences.get("vibes", [])
+
+    logger.info(f"POI Discovery - destination: {destination}")
+    logger.info(f"POI Discovery - destination_coords: {destination_coords}")
+    logger.info(f"POI Discovery - user_vibes: {user_vibes}")
 
     if destination_coords and user_vibes:
         # Get coordinates of already-enriched stops to exclude

@@ -1712,11 +1712,19 @@ async def generate_report(request: ReportRequest):
         approved_stops=approved_stops_list,
     )
 
+    # Debug: Log what we're passing to the pipeline
+    logger.info(f"Pipeline input - destination: {destination_dict}")
+    logger.info(f"Pipeline input - preferences: {preferences_dict}")
+    logger.info(f"Pipeline input - approved_stops count: {len(approved_stops_list)}")
+
     try:
         # Run LangGraph agent pipeline
         logger.info(f"Starting LangGraph pipeline for conversation {request.conversation_id}")
         result = report_graph.invoke(initial_state)
         logger.info(f"LangGraph pipeline complete: status={result.get('generation_status')}")
+        logger.info(f"Pipeline result - enriched_stops: {len(result.get('enriched_stops', []))}")
+        logger.info(f"Pipeline result - validated_stops: {len(result.get('validated_stops', []))}")
+        logger.info(f"Pipeline result - validation_status: {result.get('validation_status')}")
 
         # Check if report was generated
         html_content = result.get("html_report", "")

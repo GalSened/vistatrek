@@ -3525,6 +3525,71 @@ input[type="range"]::-webkit-slider-thumb:active {
   flex-direction: row-reverse;
 }
 
+/* Finalize Section */
+.finalize-section {
+  padding: var(--space-6);
+  margin: var(--space-4);
+  text-align: center;
+  background: rgba(76, 175, 80, 0.1);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  border-radius: var(--radius-xl);
+}
+
+.finalize-section h3 {
+  font-size: 1.5rem;
+  margin-bottom: var(--space-2);
+  color: var(--text-primary);
+}
+
+.finalize-section p {
+  color: var(--text-secondary);
+  margin-bottom: var(--space-4);
+}
+
+.generate-report-btn {
+  font-size: 1.1rem;
+  padding: var(--space-3) var(--space-6);
+  min-width: 200px;
+}
+
+.generate-report-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.report-ready {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.report-link {
+  font-size: 1.1rem;
+  padding: var(--space-3) var(--space-6);
+  text-decoration: none;
+  display: inline-block;
+}
+
+.start-new-btn {
+  font-size: 0.95rem;
+  padding: var(--space-2) var(--space-4);
+}
+
+.secondary-btn {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.secondary-btn:hover {
+  background: var(--bg-elevated);
+  border-color: var(--border-default);
+}
+
 /* ==========================================
    404 Not Found Page
    ========================================== */

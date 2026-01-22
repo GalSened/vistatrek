@@ -29,8 +29,8 @@ export const PHASE_TRANSITIONS: Record<ConversationPhase, ConversationPhase[]> =
   clarify_location: ['destination', 'dates'],
   dates: ['preferences'],
   preferences: ['planning'],
-  planning: ['propose_stop'],
-  propose_stop: ['await_approval'],
+  planning: ['propose_stop', 'finalize'],  // Can finalize when user says "done"
+  propose_stop: ['await_approval', 'finalize'],  // Can finalize from here too
   await_approval: ['propose_stop', 'modify_stop', 'finalize'],
   modify_stop: ['propose_stop'],
   finalize: ['propose_stop', 'complete'],
