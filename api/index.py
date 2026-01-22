@@ -20,6 +20,10 @@ import math
 import urllib3
 import re
 
+# LangGraph agents
+from api.agents.graph import report_graph
+from api.agents.state import create_initial_state
+
 # Suppress SSL warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -28,6 +32,124 @@ logger = logging.getLogger(__name__)
 # ============== Environment Variables ==============
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "").strip()
 LLM_MODEL = os.environ.get("LLM_MODEL", "llama-3.3-70b-versatile")
+
+# Vercel KV (Redis-compatible persistent storage)
+KV_REST_API_URL = os.environ.get("KV_REST_API_URL", "").strip()
+KV_REST_API_TOKEN = os.environ.get("KV_REST_API_TOKEN", "").strip()
+
+# Vercel Blob (for HTML report storage)
+BLOB_READ_WRITE_TOKEN = os.environ.get("BLOB_READ_WRITE_TOKEN", "").strip()
+
+# In-memory fallback storage (for local dev or KV errors)
+# Note: This will be replaced by ConversationState typed dict after model is defined
+conversations_storage: dict = {}
+
+
+# ============== Vercel KV Persistence ==============
+
+def kv_get(key: str) -> Optional[dict]:
+    """Get value from Vercel KV (falls back to in-memory for local dev)"""
+    if not KV_REST_API_URL or not KV_REST_API_TOKEN:
+        # Fallback to in-memory storage for local development
+        return conversations_storage.get(key)
+
+    try:
+        # Upstash REST API format: POST with Redis command array
+        resp = requests.post(
+            KV_REST_API_URL,
+            headers={
+                "Authorization": f"Bearer {KV_REST_API_TOKEN}",
+                "Content-Type": "application/json"
+            },
+            json=["GET", key],
+            timeout=10
+        )
+        if resp.status_code == 200:
+            data = resp.json().get("result")
+            if data:
+                return json.loads(data)
+        return None
+    except Exception as e:
+        logger.error(f"KV get error: {e}")
+        # Fallback to in-memory
+        return conversations_storage.get(key)
+
+
+def kv_set(key: str, value: dict, ex: int = 86400) -> bool:
+    """Set value in Vercel KV with TTL (default 24h)"""
+    if not KV_REST_API_URL or not KV_REST_API_TOKEN:
+        # Fallback to in-memory storage for local development
+        conversations_storage[key] = value
+        return True
+
+    try:
+        # Upstash REST API format: POST with Redis command array
+        # SET key value EX seconds
+        json_value = json.dumps(value, default=str)
+        resp = requests.post(
+            KV_REST_API_URL,
+            headers={
+                "Authorization": f"Bearer {KV_REST_API_TOKEN}",
+                "Content-Type": "application/json"
+            },
+            json=["SET", key, json_value, "EX", ex],
+            timeout=10
+        )
+        success = resp.status_code == 200
+        if success:
+            # Also update in-memory for faster access
+            conversations_storage[key] = value
+        else:
+            logger.error(f"KV set failed: {resp.status_code} - {resp.text}")
+        return success
+    except Exception as e:
+        logger.error(f"KV set error: {e}")
+        # Fallback to in-memory
+        conversations_storage[key] = value
+        return True
+
+
+def kv_delete(key: str) -> bool:
+    """Delete key from Vercel KV"""
+    if not KV_REST_API_URL or not KV_REST_API_TOKEN:
+        conversations_storage.pop(key, None)
+        return True
+
+    try:
+        # Upstash REST API format: POST with Redis command array
+        resp = requests.post(
+            KV_REST_API_URL,
+            headers={
+                "Authorization": f"Bearer {KV_REST_API_TOKEN}",
+                "Content-Type": "application/json"
+            },
+            json=["DEL", key],
+            timeout=10
+        )
+        # Also remove from in-memory
+        conversations_storage.pop(key, None)
+        return resp.status_code == 200
+    except Exception as e:
+        logger.error(f"KV delete error: {e}")
+        conversations_storage.pop(key, None)
+        return True
+
+
+def get_conversation_state(conversation_id: str) -> Optional["ConversationState"]:
+    """Load conversation from persistent storage"""
+    data = kv_get(f"conv:{conversation_id}")
+    if data:
+        try:
+            # Import happens at runtime when ConversationState is defined
+            return ConversationState(**data)
+        except Exception as e:
+            logger.error(f"Error parsing conversation state: {e}")
+    return None
+
+
+def save_conversation_state(state: "ConversationState") -> None:
+    """Save conversation to persistent storage"""
+    kv_set(f"conv:{state.id}", state.model_dump(mode='json'), ex=86400)
 
 
 # ============== Pydantic Models ==============
@@ -329,59 +451,83 @@ ConversationState.model_rebuild()
 
 # ============== Conversation Service ==============
 
-# In-memory conversation storage (serverless - recreated per cold start)
-conversations_storage: dict[str, ConversationState] = {}
+# Note: conversations_storage is declared at the top of the file for forward reference compatibility
+# It uses Vercel KV for persistence when available, falls back to in-memory for local dev
 
 
-# System prompt for the AI assistant
-SYSTEM_PROMPT = """You are VistaTrek's friendly trip planning assistant. You help users plan amazing road trips in a conversational, collaborative way.
+# System prompt for the AI assistant - enforces strict conversation flow
+SYSTEM_PROMPT = """You are VistaTrek, a friendly trip planning assistant.
 
-LANGUAGE: Respond in the same language the user uses. If they write in Hebrew, respond in Hebrew. If English, respond in English.
+## STRICT CONVERSATION FLOW - FOLLOW EXACTLY
 
-PERSONALITY:
-- Warm, enthusiastic, and knowledgeable about travel
-- Speak naturally, like a friend who loves travel planning
-- Keep responses concise but engaging (2-3 sentences usually)
-- Use emojis sparingly to add warmth
+You MUST follow this exact sequence. ONE question per message. Do NOT skip phases.
 
-YOUR ROLE:
-- Guide users through trip planning step by step
-- Ask ONE question at a time
-- Confirm understanding before moving on
-- Suggest interesting stops based on their preferences
+### Current State
+- Phase: {phase}
+- Destination: {destination}
+- Dates: {dates}
+- Preferences: {preferences}
+- Approved stops: {stops_count}
 
-PHASES (follow this order):
-1. GREETING: Welcome the user, ask where they want to go
-2. DESTINATION: Understand their destination, clarify if ambiguous
-3. DATES: Ask for travel dates (when and how long)
-4. PREFERENCES: Ask about their travel style (pace, interests)
-5. PROPOSE_STOP: Suggest ONE stop at a time with a brief reason
-6. Continue proposing stops until user says they have enough
+### Phase Rules
 
-IMPORTANT RULES:
-- Extract location names, dates, and preferences from user input
-- If a location is ambiguous, ask for clarification
-- Propose stops ONE at a time, wait for approval
-- When user approves all stops, summarize the trip
+**GREETING phase:**
+- First message only. Warmly greet and ask: "Where would you like to go?"
+- Transition to DESTINATION after greeting
 
-OUTPUT FORMAT:
-For each response, output valid JSON with these fields:
-{
-  "message": "Your response text to the user",
-  "phase": "current_phase",
-  "next_phase": "phase to transition to (optional)",
-  "extracted": {
-    "destination": "location name if mentioned",
+**DESTINATION phase:**
+- Wait for a clear location (city, country, region)
+- If user gives dates without destination, ask for destination first
+- Confirm: "Great, you want to visit [location]. Is that correct?"
+- Do NOT proceed until you have a valid destination
+- Exit: Move to DATES when destination is confirmed
+
+**DATES phase:**
+- Ask: "When are you planning to travel? And for how many days?"
+- Accept formats like "April 1st for 3 days" or "May 10-15" or "next week for 5 days"
+- Confirm: "So you'll be traveling [start] to [end], that's [X] days"
+- Exit: Move to PREFERENCES when dates are confirmed
+
+**PREFERENCES phase:**
+- Ask: "What experiences interest you most? (nature, food, history, adventure, relaxation)"
+- Wait for at least one clear preference
+- Confirm what you understood
+- Exit: Move to PLANNING when at least one preference is captured
+
+**PLANNING phase:**
+- Suggest places that match their preferences
+- Keep responses conversational, not overly structured
+- When user says "done", "enough", "that's it", "finish", or similar, move to FINALIZE
+
+**FINALIZE phase:**
+- Say: "Perfect! I've gathered all the info for your trip. Click the button below to generate your shareable trip report!"
+- Set next_phase to "finalize"
+
+## RULES
+- ONE question per message
+- NEVER skip phases
+- Be conversational but focused
+- Match the user's language (English or Hebrew)
+- Extract information from user messages even if embedded in conversation
+
+## OUTPUT FORMAT
+Output valid JSON:
+{{
+  "message": "Your response to user",
+  "phase": "current_phase_name",
+  "next_phase": "phase_to_transition_to (optional)",
+  "extracted": {{
+    "destination": "location if mentioned",
     "start_date": "YYYY-MM-DD if mentioned",
     "end_date": "YYYY-MM-DD if mentioned",
     "duration_days": number if mentioned,
-    "vibes": ["list", "of", "interests"],
+    "vibes": ["interests"],
     "pace": "relaxed|moderate|active"
-  },
-  "quick_replies": ["Suggested", "Quick", "Replies"]
-}
+  }},
+  "quick_replies": ["Option1", "Option2"]
+}}
 
-Only include fields that are relevant to the current response."""
+Only include fields relevant to the response."""
 
 
 def call_groq_api(messages: list[dict], stream: bool = False) -> str:
@@ -442,22 +588,23 @@ def parse_ai_response(response: str) -> dict:
 
 
 def build_llm_messages(state: ConversationState) -> list[dict]:
-    """Build message history for LLM"""
-    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    """Build message history for LLM with state injected into system prompt"""
+    # Prepare state values for template
+    destination = state.destination.display_name if state.destination else "Not set"
+    dates = f"{state.date_range.start} to {state.date_range.end}" if state.date_range else "Not set"
+    preferences = ", ".join(state.preferences.vibes) if state.preferences and state.preferences.vibes else "Not set"
+    stops_count = len(state.approved_stops)
 
-    # Add context summary
-    context_parts = [f"Phase: {state.phase.value}"]
-    if state.destination:
-        context_parts.append(f"Destination: {state.destination.normalized}")
-    if state.date_range:
-        context_parts.append(f"Dates: {state.date_range.start} to {state.date_range.end}")
-    if state.preferences:
-        context_parts.append(f"Vibes: {', '.join(state.preferences.vibes)}")
-    if state.approved_stops:
-        context_parts.append(f"Approved stops: {len(state.approved_stops)}")
+    # Inject state into system prompt
+    formatted_prompt = SYSTEM_PROMPT.format(
+        phase=state.phase.value,
+        destination=destination,
+        dates=dates,
+        preferences=preferences,
+        stops_count=stops_count
+    )
 
-    if context_parts:
-        messages.append({"role": "system", "content": f"Current context:\n" + "\n".join(context_parts)})
+    messages = [{"role": "system", "content": formatted_prompt}]
 
     # Add recent messages (last 10)
     for msg in state.messages[-10:]:
@@ -502,6 +649,47 @@ def geocode_location(query: str, language: str = "he") -> Optional[LocationEntit
     return None
 
 
+def parse_flexible_date(date_str: str) -> Optional[str]:
+    """Parse various date formats and return ISO format (YYYY-MM-DD)"""
+    if not date_str:
+        return None
+
+    # Already in ISO format
+    if re.match(r'^\d{4}-\d{2}-\d{2}$', date_str):
+        return date_str
+
+    # Common date formats to try
+    formats = [
+        "%Y-%m-%d",      # 2024-04-15
+        "%d/%m/%Y",      # 15/04/2024
+        "%m/%d/%Y",      # 04/15/2024
+        "%B %d",         # April 15
+        "%B %d, %Y",     # April 15, 2024
+        "%d %B",         # 15 April
+        "%d %B %Y",      # 15 April 2024
+        "%b %d",         # Apr 15
+        "%b %d, %Y",     # Apr 15, 2024
+    ]
+
+    # Get current year for dates without year
+    current_year = datetime.utcnow().year
+
+    for fmt in formats:
+        try:
+            parsed = datetime.strptime(date_str.strip(), fmt)
+            # If year is 1900 (default), use current or next year
+            if parsed.year == 1900:
+                parsed = parsed.replace(year=current_year)
+                # If date is in the past, use next year
+                if parsed < datetime.utcnow():
+                    parsed = parsed.replace(year=current_year + 1)
+            return parsed.strftime("%Y-%m-%d")
+        except ValueError:
+            continue
+
+    return None
+
+
 def update_state_from_extracted(
     state: ConversationState,
     extracted: dict,
@@ -514,10 +702,13 @@ def update_state_from_extracted(
         if location:
             state.destination = location
 
-    # Handle dates
-    start_date = extracted.get("start_date")
-    end_date = extracted.get("end_date")
+    # Handle dates with flexible parsing
+    start_date_raw = extracted.get("start_date")
+    end_date_raw = extracted.get("end_date")
     duration = extracted.get("duration_days")
+
+    start_date = parse_flexible_date(start_date_raw) if start_date_raw else None
+    end_date = parse_flexible_date(end_date_raw) if end_date_raw else None
 
     if start_date:
         if end_date:
@@ -551,19 +742,26 @@ def update_state_from_extracted(
 
 def auto_advance_phase(state: ConversationState):
     """Auto-advance phase based on completed data"""
+    # If we have destination during GREETING, skip straight to DATES
     if state.phase == ConversationPhase.GREETING and state.destination:
-        state.phase = ConversationPhase.DESTINATION
+        if state.destination.alternatives:
+            state.phase = ConversationPhase.CLARIFY_LOCATION
+        else:
+            state.phase = ConversationPhase.DATES
 
+    # Handle DESTINATION phase
     if state.phase == ConversationPhase.DESTINATION:
         if state.destination and not state.destination.alternatives:
             state.phase = ConversationPhase.DATES
         elif state.destination and state.destination.alternatives:
             state.phase = ConversationPhase.CLARIFY_LOCATION
 
+    # Move from DATES to PREFERENCES when we have date_range
     if state.phase == ConversationPhase.DATES and state.date_range:
         state.phase = ConversationPhase.PREFERENCES
 
-    if state.phase == ConversationPhase.PREFERENCES and state.preferences:
+    # Move from PREFERENCES to PLANNING only when we have actual vibes
+    if state.phase == ConversationPhase.PREFERENCES and state.preferences and state.preferences.vibes:
         state.phase = ConversationPhase.PLANNING
 
 
@@ -1034,10 +1232,12 @@ async def send_plan_message(request: ChatPlanRequest):
     """
     now = datetime.utcnow()
 
-    # Create or get conversation
-    if request.conversation_id and request.conversation_id in conversations_storage:
-        state = conversations_storage[request.conversation_id]
-    else:
+    # Create or get conversation from persistent storage
+    state = None
+    if request.conversation_id:
+        state = get_conversation_state(request.conversation_id)
+
+    if state is None:
         # Create new conversation
         conversation_id = str(uuid.uuid4())
         state = ConversationState(
@@ -1057,7 +1257,8 @@ async def send_plan_message(request: ChatPlanRequest):
                 confidence=1.0
             )
 
-        conversations_storage[conversation_id] = state
+        # Save new conversation to persistent storage
+        save_conversation_state(state)
 
     # Add user message to history
     user_message = ConversationMessage(
@@ -1072,8 +1273,9 @@ async def send_plan_message(request: ChatPlanRequest):
 
     # Build LLM messages and call API
     try:
+        # Note: user message is already in state.messages (added above),
+        # so build_llm_messages will include it - don't add it again
         llm_messages = build_llm_messages(state)
-        llm_messages.append({"role": "user", "content": request.message})
 
         ai_response = call_groq_api(llm_messages)
         parsed = parse_ai_response(ai_response)
@@ -1082,15 +1284,16 @@ async def send_plan_message(request: ChatPlanRequest):
         if "extracted" in parsed:
             update_state_from_extracted(state, parsed["extracted"], request.language)
 
-        # Handle phase transition
+        # Handle phase transition from LLM suggestion
         if parsed.get("next_phase"):
             try:
                 state.phase = ConversationPhase(parsed["next_phase"])
             except ValueError:
                 pass
-        else:
-            # Auto-advance based on extracted data
-            auto_advance_phase(state)
+
+        # ALWAYS auto-advance based on extracted data
+        # This ensures we move forward when data is complete, regardless of LLM suggestion
+        auto_advance_phase(state)
 
         # Build quick replies if provided
         quick_replies = None
@@ -1113,6 +1316,9 @@ async def send_plan_message(request: ChatPlanRequest):
 
         # Check if complete
         is_complete = state.phase == ConversationPhase.COMPLETE
+
+        # Save state to persistent storage
+        save_conversation_state(state)
 
         return ChatPlanResponse(
             conversation_id=state.id,
@@ -1137,6 +1343,9 @@ async def send_plan_message(request: ChatPlanRequest):
         )
         state.messages.append(error_message)
 
+        # Save state even on error
+        save_conversation_state(state)
+
         return ChatPlanResponse(
             conversation_id=state.id,
             phase=state.phase,
@@ -1149,21 +1358,22 @@ async def send_plan_message(request: ChatPlanRequest):
 @app.get("/api/chat/plan/{conversation_id}", response_model=ConversationState)
 async def get_conversation(conversation_id: str):
     """Get the current state of a planning conversation."""
-    if conversation_id not in conversations_storage:
+    state = get_conversation_state(conversation_id)
+    if state is None:
         raise HTTPException(
             status_code=404,
-            detail="Conversation not found. Note: Conversations are stored in memory and may be lost on server restart."
+            detail="Conversation not found"
         )
-    return conversations_storage[conversation_id]
+    return state
 
 
 @app.post("/api/chat/plan/{conversation_id}/stop-decision", response_model=StopDecisionResponse)
 async def handle_stop_decision(conversation_id: str, request: StopDecisionRequest):
     """Handle user's decision on a proposed stop."""
-    if conversation_id not in conversations_storage:
+    state = get_conversation_state(conversation_id)
+    if state is None:
         raise HTTPException(status_code=404, detail="Conversation not found")
 
-    state = conversations_storage[conversation_id]
     now = datetime.utcnow()
 
     # Verify there's a current proposal
@@ -1228,9 +1438,345 @@ async def handle_stop_decision(conversation_id: str, request: StopDecisionReques
     state.messages.append(message)
     state.updated_at = now
 
+    # Save state to persistent storage
+    save_conversation_state(state)
+
     return StopDecisionResponse(
         success=True,
         next_phase=state.phase,
         message=message,
         new_proposal=state.current_proposal
     )
+
+
+# ============== Report Generation ==============
+
+class ReportRequest(BaseModel):
+    """Request to generate a trip report"""
+    conversation_id: str
+
+
+class ReportResponse(BaseModel):
+    """Response with generated report URL"""
+    status: str
+    report_url: str
+    trip_summary: dict
+
+
+def generate_trip_html(state: ConversationState) -> str:
+    """Generate comprehensive HTML trip report"""
+    destination = state.destination.display_name if state.destination else "Your Trip"
+    date_range = state.date_range
+    stops = state.approved_stops
+
+    # Build stops HTML
+    stops_html = ""
+    for i, stop in enumerate(stops, 1):
+        coords = stop.coordinates
+        maps_url = f"https://www.google.com/maps?q={coords.lat},{coords.lon}" if coords else "#"
+        stops_html += f'''
+        <div class="stop-card">
+            <div class="stop-number">{i}</div>
+            <div class="stop-content">
+                <h3>{stop.name or "Stop"}</h3>
+                <p class="stop-type">{stop.type or ""}</p>
+                <a href="{maps_url}" target="_blank" class="maps-link">Open in Maps →</a>
+            </div>
+        </div>
+        '''
+
+    if not stops_html:
+        stops_html = '<p class="no-stops">No stops have been added yet. Continue planning your trip!</p>'
+
+    # Build preferences section if available
+    preferences_html = ""
+    if state.preferences and state.preferences.vibes:
+        vibes = ", ".join(state.preferences.vibes)
+        preferences_html = f'<p class="preferences"><strong>Interests:</strong> {vibes}</p>'
+
+    # Date formatting
+    date_display = ""
+    if date_range:
+        date_display = f'{date_range.start} → {date_range.end}'
+
+    return f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trip to {destination} | VistaTrek</title>
+    <style>
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+            padding: 2rem;
+        }}
+        .container {{ max-width: 800px; margin: 0 auto; }}
+        .header {{
+            text-align: center;
+            padding: 2rem;
+            background: rgba(255,255,255,0.1);
+            border-radius: 20px;
+            margin-bottom: 2rem;
+            backdrop-filter: blur(10px);
+        }}
+        .header h1 {{
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }}
+        .dates {{ color: #a0a0a0; font-size: 1.1rem; margin-bottom: 0.5rem; }}
+        .preferences {{ color: #888; font-size: 0.95rem; }}
+        .section-title {{
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }}
+        .stop-card {{
+            display: flex;
+            gap: 1rem;
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            transition: transform 0.2s, background 0.2s;
+        }}
+        .stop-card:hover {{
+            transform: translateX(5px);
+            background: rgba(255,255,255,0.08);
+        }}
+        .stop-number {{
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #4CAF50, #8BC34A);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            flex-shrink: 0;
+        }}
+        .stop-content h3 {{ margin-bottom: 0.25rem; }}
+        .stop-type {{ color: #888; font-size: 0.9rem; margin-bottom: 0.5rem; }}
+        .maps-link {{
+            color: #4CAF50;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }}
+        .maps-link:hover {{ text-decoration: underline; }}
+        .no-stops {{
+            text-align: center;
+            color: #666;
+            padding: 2rem;
+            background: rgba(255,255,255,0.03);
+            border-radius: 12px;
+        }}
+        .footer {{
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+            font-size: 0.9rem;
+        }}
+        .footer a {{ color: #4CAF50; text-decoration: none; }}
+        .footer a:hover {{ text-decoration: underline; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🗺️ {destination}</h1>
+            <p class="dates">{date_display}</p>
+            {preferences_html}
+        </div>
+        <h2 class="section-title">📍 Your Stops ({len(stops)})</h2>
+        {stops_html}
+        <div class="footer">
+            Generated by <a href="https://vistatrek.vercel.app" target="_blank">VistaTrek</a> • Plan your next adventure
+        </div>
+    </div>
+</body>
+</html>'''
+
+
+def upload_to_blob(content: str, filename: str) -> str:
+    """Upload HTML content to Vercel Blob and return public URL"""
+    if not BLOB_READ_WRITE_TOKEN:
+        # Fallback for local dev: return data URL
+        import base64
+        encoded = base64.b64encode(content.encode('utf-8')).decode('utf-8')
+        return f"data:text/html;base64,{encoded}"
+
+    try:
+        response = requests.put(
+            f"https://blob.vercel-storage.com/{filename}",
+            headers={
+                "Authorization": f"Bearer {BLOB_READ_WRITE_TOKEN}",
+                "Content-Type": "text/html; charset=utf-8",
+                "x-api-version": "7"
+            },
+            data=content.encode('utf-8'),
+            timeout=30
+        )
+
+        if response.status_code == 200:
+            result = response.json()
+            return result.get("url", "")
+        else:
+            logger.error(f"Blob upload failed: {response.status_code} - {response.text}")
+            raise HTTPException(status_code=502, detail="Failed to upload report")
+    except requests.RequestException as e:
+        logger.error(f"Blob upload error: {e}")
+        raise HTTPException(status_code=502, detail=f"Report upload error: {str(e)}")
+
+
+class ReportResponseV2(BaseModel):
+    """Enhanced response with LangGraph validation info"""
+    status: str
+    report_url: str
+    trip_summary: dict
+    validation_status: Optional[str] = None
+    validation_errors: Optional[list] = None
+    stops_included: Optional[int] = None
+
+
+@app.post("/api/report/generate", response_model=ReportResponseV2)
+async def generate_report(request: ReportRequest):
+    """
+    Generate HTML trip report using LangGraph agent pipeline.
+
+    Pipeline:
+    1. Research Agent - Enriches stops with API data, discovers new POIs
+    2. Validation Agent - Verifies 100% data accuracy
+    3. HTML Generator Agent - Creates polished report with AI descriptions
+    """
+    conv_state = get_conversation_state(request.conversation_id)
+    if conv_state is None:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    # Build destination dict for agent pipeline
+    destination_dict = {}
+    if conv_state.destination:
+        destination_dict = {
+            "display_name": conv_state.destination.display_name or conv_state.destination.normalized,
+            "coordinates": {
+                "lat": conv_state.destination.coordinates.lat,
+                "lon": conv_state.destination.coordinates.lon,
+            },
+            "country": conv_state.destination.country,
+        }
+
+    # Build date_range dict
+    date_range_dict = {}
+    if conv_state.date_range:
+        date_range_dict = {
+            "start": conv_state.date_range.start,
+            "end": conv_state.date_range.end,
+        }
+
+    # Build preferences dict
+    preferences_dict = {}
+    if conv_state.preferences:
+        preferences_dict = {
+            "vibes": conv_state.preferences.vibes or [],
+            "pace": conv_state.preferences.pace.value if conv_state.preferences.pace else "moderate",
+        }
+
+    # Convert approved stops to dict format for agents
+    approved_stops_list = []
+    for stop in conv_state.approved_stops:
+        approved_stops_list.append({
+            "id": stop.id,
+            "name": stop.name,
+            "type": stop.type,
+            "coordinates": {
+                "lat": stop.coordinates.lat,
+                "lon": stop.coordinates.lon,
+            } if stop.coordinates else {},
+            "osm_id": stop.osm_id,
+            "tags": stop.tags,
+        })
+
+    # Create initial state for agent pipeline
+    initial_state = create_initial_state(
+        conversation_id=request.conversation_id,
+        destination=destination_dict,
+        date_range=date_range_dict,
+        preferences=preferences_dict,
+        approved_stops=approved_stops_list,
+    )
+
+    try:
+        # Run LangGraph agent pipeline
+        logger.info(f"Starting LangGraph pipeline for conversation {request.conversation_id}")
+        result = report_graph.invoke(initial_state)
+        logger.info(f"LangGraph pipeline complete: status={result.get('generation_status')}")
+
+        # Check if report was generated
+        html_content = result.get("html_report", "")
+        if not html_content:
+            logger.error("LangGraph pipeline produced no HTML content")
+            raise HTTPException(status_code=500, detail="Report generation failed - no content produced")
+
+        # Generate unique filename
+        timestamp = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
+        filename = f"trip-{request.conversation_id[:8]}-{timestamp}.html"
+
+        # Upload to Vercel Blob
+        report_url = upload_to_blob(html_content, filename)
+
+        # Build summary
+        destination_name = destination_dict.get("display_name", "Unknown")
+        date_display = ""
+        if date_range_dict:
+            date_display = f"{date_range_dict.get('start', '')} to {date_range_dict.get('end', '')}"
+
+        return ReportResponseV2(
+            status="success",
+            report_url=report_url,
+            trip_summary={
+                "destination": destination_name,
+                "dates": date_display,
+                "stops_count": len(result.get("validated_stops", [])),
+            },
+            validation_status=result.get("validation_status"),
+            validation_errors=result.get("validation_errors", []),
+            stops_included=len(result.get("validated_stops", [])),
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"LangGraph pipeline error: {type(e).__name__}: {e}")
+
+        # Fallback to simple HTML generation
+        logger.info("Falling back to simple HTML generation")
+        html_content = generate_trip_html(conv_state)
+
+        timestamp = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
+        filename = f"trip-{request.conversation_id[:8]}-{timestamp}.html"
+        report_url = upload_to_blob(html_content, filename)
+
+        destination_name = conv_state.destination.display_name if conv_state.destination else "Unknown"
+        date_display = ""
+        if conv_state.date_range:
+            date_display = f"{conv_state.date_range.start} to {conv_state.date_range.end}"
+
+        return ReportResponseV2(
+            status="success",
+            report_url=report_url,
+            trip_summary={
+                "destination": destination_name,
+                "dates": date_display,
+                "stops_count": len(conv_state.approved_stops),
+            },
+            validation_status="fallback",
+            validation_errors=[str(e)],
+            stops_included=len(conv_state.approved_stops),
+        )
