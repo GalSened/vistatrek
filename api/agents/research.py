@@ -202,6 +202,110 @@ def haversine_distance(coord1: Dict[str, float], coord2: Dict[str, float]) -> fl
     return R * c
 
 
+def optimize_stop_order(
+    stops: List[Dict[str, Any]],
+    start_coords: Optional[Dict[str, float]] = None,
+) -> List[Dict[str, Any]]:
+    """
+    Optimize stop order using nearest neighbor algorithm.
+    Returns stops in optimized order for efficient travel.
+    """
+    if len(stops) <= 1:
+        return stops
+
+    # Use destination as start if not provided
+    if not start_coords and stops:
+        start_coords = stops[0].get("coordinates", {})
+
+    ordered = []
+    remaining = stops.copy()
+
+    # Start from the point closest to start_coords
+    current = start_coords
+
+    while remaining:
+        # Find nearest stop to current position
+        nearest_idx = 0
+        nearest_dist = float("inf")
+
+        for i, stop in enumerate(remaining):
+            stop_coords = stop.get("coordinates", {})
+            if stop_coords:
+                dist = haversine_distance(current, stop_coords)
+                if dist < nearest_dist:
+                    nearest_dist = dist
+                    nearest_idx = i
+
+        # Add nearest stop to ordered list
+        nearest_stop = remaining.pop(nearest_idx)
+        ordered.append(nearest_stop)
+        current = nearest_stop.get("coordinates", current)
+
+    return ordered
+
+
+def get_multi_stop_route(
+    stops: List[Dict[str, Any]],
+    start_coords: Optional[Dict[str, float]] = None,
+    end_coords: Optional[Dict[str, float]] = None,
+) -> Optional[Dict[str, Any]]:
+    """
+    Get route polyline through multiple stops using OSRM.
+    Returns route geometry and metadata.
+    """
+    if not stops:
+        return None
+
+    # Build waypoints list
+    waypoints = []
+
+    # Add start if provided
+    if start_coords:
+        waypoints.append(f"{start_coords['lon']},{start_coords['lat']}")
+
+    # Add all stops
+    for stop in stops:
+        coords = stop.get("coordinates", {})
+        if coords.get("lat") and coords.get("lon"):
+            waypoints.append(f"{coords['lon']},{coords['lat']}")
+
+    # Add end if provided and different from last stop
+    if end_coords:
+        waypoints.append(f"{end_coords['lon']},{end_coords['lat']}")
+
+    if len(waypoints) < 2:
+        return None
+
+    # OSRM trip endpoint (optimizes waypoint order)
+    # Using route endpoint to preserve our optimized order
+    coords_str = ";".join(waypoints)
+    osrm_url = f"https://router.project-osrm.org/route/v1/driving/{coords_str}?overview=full&geometries=geojson"
+
+    try:
+        response = requests.get(osrm_url, timeout=15)
+        if response.status_code != 200:
+            logger.warning(f"OSRM returned {response.status_code}")
+            return None
+
+        data = response.json()
+        if data.get("code") != "Ok" or not data.get("routes"):
+            logger.warning(f"OSRM error: {data.get('code')}")
+            return None
+
+        route = data["routes"][0]
+        return {
+            "polyline": route["geometry"]["coordinates"],  # [[lon, lat], ...]
+            "duration_seconds": int(route["duration"]),
+            "distance_meters": int(route["distance"]),
+        }
+    except requests.Timeout:
+        logger.warning("OSRM request timed out")
+        return None
+    except Exception as e:
+        logger.warning(f"OSRM error: {e}")
+        return None
+
+
 def search_pois_by_vibes(
     center: Dict[str, float],
     vibes: List[str],
@@ -417,10 +521,32 @@ def research_agent(state: TripReportState) -> Dict[str, Any]:
                 "match_reason": f"Matches your interest in {poi.get('matched_vibe', 'travel')}",
             })
 
+    # Combine all stops
+    all_stops = enriched + discovered
+
+    # PART 3: Optimize stop order for efficient travel
+    destination_coords = state.get("destination", {}).get("coordinates", {})
+    if len(all_stops) > 1 and destination_coords:
+        logger.info(f"Optimizing order for {len(all_stops)} stops")
+        all_stops = optimize_stop_order(all_stops, start_coords=destination_coords)
+
+    # PART 4: Get route polyline through all stops
+    optimized_route = None
+    if len(all_stops) >= 1 and destination_coords:
+        logger.info("Getting route polyline from OSRM")
+        optimized_route = get_multi_stop_route(
+            stops=all_stops,
+            start_coords=destination_coords,
+            end_coords=destination_coords,  # Return to start
+        )
+        if optimized_route:
+            logger.info(f"Route: {optimized_route['distance_meters']/1000:.1f}km, {optimized_route['duration_seconds']/60:.0f}min")
+
     logger.info(f"Research complete: {len(enriched)} enriched, {len(discovered)} discovered")
 
     return {
-        "enriched_stops": enriched + discovered,
+        "enriched_stops": all_stops,
+        "optimized_route": optimized_route,
         "research_complete": True,
         "research_attempts": state.get("research_attempts", 0) + 1,
     }

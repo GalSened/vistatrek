@@ -23,6 +23,9 @@ class TripReportState(TypedDict):
     validation_errors: List[str]
     validated_stops: List[Dict[str, Any]]  # Stops that passed validation
 
+    # Route optimization
+    optimized_route: Optional[Dict[str, Any]]  # {polyline, duration_seconds, distance_meters}
+
     # Output
     html_report: str
     report_url: Optional[str]
@@ -49,6 +52,7 @@ def create_initial_state(
         validation_status="pending",
         validation_errors=[],
         validated_stops=[],
+        optimized_route=None,
         html_report="",
         report_url=None,
         generation_status="pending",

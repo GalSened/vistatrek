@@ -1644,6 +1644,7 @@ class ReportResponseV2(BaseModel):
     validation_status: Optional[str] = None
     validation_errors: Optional[list] = None
     stops_included: Optional[int] = None
+    optimized_route: Optional[dict] = None  # {polyline, duration_seconds, distance_meters}
 
 
 @app.post("/api/report/generate", response_model=ReportResponseV2)
@@ -1756,6 +1757,7 @@ async def generate_report(request: ReportRequest):
             validation_status=result.get("validation_status"),
             validation_errors=result.get("validation_errors", []),
             stops_included=len(result.get("validated_stops", [])),
+            optimized_route=result.get("optimized_route"),
         )
 
     except HTTPException:
