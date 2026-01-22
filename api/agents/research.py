@@ -9,6 +9,38 @@ from .state import TripReportState
 
 logger = logging.getLogger(__name__)
 
+# Overpass API endpoints (prioritize reliable ones)
+OVERPASS_ENDPOINTS = [
+    "https://maps.mail.ru/osm/tools/overpass/api/interpreter",  # Most reliable
+    "https://overpass.kumi.systems/api/interpreter",
+    "https://overpass-api.de/api/interpreter",  # Often times out
+]
+
+
+def query_overpass_with_fallback(query: str, timeout: int = 20) -> Optional[dict]:
+    """Query Overpass API with fallback to mirror servers."""
+    for endpoint in OVERPASS_ENDPOINTS:
+        try:
+            logger.info(f"Trying Overpass endpoint: {endpoint}")
+            response = requests.post(
+                endpoint,
+                data={"data": query},
+                timeout=timeout,
+            )
+            if response.status_code == 200:
+                data = response.json()
+                logger.info(f"Overpass success from {endpoint}: {len(data.get('elements', []))} elements")
+                return data
+            else:
+                logger.warning(f"Overpass {endpoint} returned {response.status_code}")
+        except requests.Timeout:
+            logger.warning(f"Overpass {endpoint} timed out")
+        except Exception as e:
+            logger.warning(f"Overpass {endpoint} error: {e}")
+
+    logger.error("All Overpass endpoints failed")
+    return None
+
 # Mapping of user vibes to OSM tags
 VIBE_TO_OSM_TAGS = {
     "nature": ["tourism=viewpoint", "natural=peak", "leisure=nature_reserve", "natural=waterfall"],
@@ -75,14 +107,9 @@ def fetch_poi_details(coordinates: Dict[str, float], radius_m: int = 50) -> Dict
         out body;
         """
 
-        response = requests.post(
-            "https://overpass-api.de/api/interpreter",
-            data={"data": query},
-            timeout=15,
-        )
-
-        if response.status_code == 200:
-            elements = response.json().get("elements", [])
+        data = query_overpass_with_fallback(query, timeout=15)
+        if data:
+            elements = data.get("elements", [])
             if elements:
                 # Get the closest element with the most tags
                 best = max(elements, key=lambda e: len(e.get("tags", {})))
@@ -209,41 +236,61 @@ def search_pois_by_vibes(
         return []
 
     try:
-        # Build Overpass query for all tags
-        radius_m = radius_km * 1000
-        tag_queries = []
-        for tag in osm_tags[:8]:  # Limit to avoid timeout
-            key, value = tag.split("=")
-            tag_queries.append(f'node(around:{radius_m},{lat},{lon})["{key}"="{value}"]["name"];')
+        # Query POIs in smaller batches to avoid Overpass timeouts
+        # Use 3km radius for reliable queries
+        radius_m = min(radius_km * 1000, 3000)
+        all_elements = []
 
-        logger.info(f"Overpass query tags: {osm_tags[:8]}")
+        # Split tags into small batches and query each separately
+        batch_size = 2
+        tag_batches = [osm_tags[i:i+batch_size] for i in range(0, min(len(osm_tags), 6), batch_size)]
 
-        query = f"""
-        [out:json][timeout:25];
-        (
-          {' '.join(tag_queries)}
-        );
-        out body;
-        """
+        for batch in tag_batches:
+            tag_queries = []
+            for tag in batch:
+                key, value = tag.split("=")
+                tag_queries.append(f'nw(around:{radius_m},{lat},{lon})["{key}"="{value}"]["name"];')
 
-        response = requests.post(
-            "https://overpass-api.de/api/interpreter",
-            data={"data": query},
-            timeout=30,
-        )
+            logger.info(f"Overpass batch query: {batch}, radius: {radius_m}m")
 
-        if response.status_code != 200:
-            logger.error(f"Overpass search failed: {response.status_code}")
+            query = f"""
+            [out:json][timeout:45];
+            (
+              {' '.join(tag_queries)}
+            );
+            out center 15;
+            """
+
+            data = query_overpass_with_fallback(query, timeout=50)
+            if data:
+                batch_elements = data.get("elements", [])
+                logger.info(f"Batch returned {len(batch_elements)} elements")
+                all_elements.extend(batch_elements)
+
+            # Stop if we have enough POIs
+            if len(all_elements) >= limit:
+                break
+
+        logger.info(f"Total Overpass elements: {len(all_elements)}")
+
+        if not all_elements:
+            logger.warning("No POIs found from Overpass")
             return []
 
-        elements = response.json().get("elements", [])
-        logger.info(f"Overpass returned {len(elements)} elements")
         results = []
 
-        for element in elements:
+        for element in all_elements:
             tags = element.get("tags", {})
-            elem_lat = element.get("lat")
-            elem_lon = element.get("lon")
+
+            # Handle both node and way elements
+            # Nodes have direct lat/lon, ways have center.lat/center.lon
+            if element.get("type") == "way":
+                center = element.get("center", {})
+                elem_lat = center.get("lat")
+                elem_lon = center.get("lon")
+            else:
+                elem_lat = element.get("lat")
+                elem_lon = element.get("lon")
 
             if not elem_lat or not elem_lon or not tags.get("name"):
                 continue

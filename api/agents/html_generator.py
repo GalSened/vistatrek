@@ -459,10 +459,26 @@ def html_generator_agent(state: TripReportState) -> Dict[str, Any]:
     preferences = state.get("preferences", {})
 
     if not validated_stops:
-        logger.warning("No validated stops to generate report")
+        logger.warning("No validated stops to generate report - generating fallback report")
+        # Generate a fallback report with just the trip overview
+        trip_overview = generate_trip_overview(
+            destination=destination,
+            date_range=date_range,
+            stops_count=0,
+            preferences=preferences,
+        )
+
+        fallback_html = render_report_template(
+            destination=destination,
+            date_range=date_range,
+            preferences=preferences,
+            overview=trip_overview + " We're still discovering places for you - check back soon!",
+            stops=[],
+        )
+
         return {
-            "html_report": "",
-            "generation_status": "failed",
+            "html_report": fallback_html,
+            "generation_status": "complete",
         }
 
     # Generate AI descriptions for each stop
