@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { useConversation } from '../context/ConversationContext';
 import ProposedStopCard from '../components/chat/ProposedStopCard';
 import QuickReplyButtons from '../components/chat/QuickReplyButtons';
+import TripMap from '../components/map/TripMap';
 import { getPhaseLabel } from '../types/conversation';
 
 export default function ChatPlanner() {
@@ -27,6 +28,9 @@ export default function ChatPlanner() {
     error,
     reportUrl,
     isGeneratingReport,
+    optimizedRoute,
+    destination,
+    approvedStops,
     startConversation,
     sendMessage,
     approveStop,
@@ -35,6 +39,8 @@ export default function ChatPlanner() {
     resetConversation,
     generateReport,
   } = useConversation();
+
+  const [showMap, setShowMap] = useState(false);
 
   const language = i18n.language === 'he' ? 'he' : 'en';
   const isRTL = language === 'he';
@@ -129,7 +135,53 @@ export default function ChatPlanner() {
         >
           +
         </button>
+        {/* Map toggle button - show when we have destination or stops */}
+        {(destination || approvedStops.length > 0) && (
+          <button
+            className="map-toggle-btn icon-btn"
+            onClick={() => setShowMap(!showMap)}
+            aria-label={showMap ? 'Hide map' : 'Show map'}
+          >
+            {showMap ? '🗺️✕' : '🗺️'}
+          </button>
+        )}
       </header>
+
+      {/* Trip map - collapsible */}
+      {showMap && destination && (
+        <div className="chat-map-container">
+          <TripMap
+            route={optimizedRoute ? {
+              polyline: optimizedRoute.polyline,
+              duration_seconds: optimizedRoute.duration_seconds,
+              distance_meters: optimizedRoute.distance_meters,
+            } : {
+              polyline: [],
+              duration_seconds: 0,
+              distance_meters: 0,
+            }}
+            stops={approvedStops.map((stop, index) => ({
+              ...stop,
+              id: stop.id || `stop-${index}`,
+              type: stop.type || 'custom',
+              planned_arrival: stop.planned_arrival || new Date().toISOString(),
+              planned_departure: stop.planned_departure || new Date().toISOString(),
+              duration_minutes: stop.duration_minutes || 30,
+              is_anchor: stop.is_anchor || false,
+            }))}
+            suggestions={[]}
+            startLocation={destination.coordinates}
+            endLocation={destination.coordinates}
+          />
+          {optimizedRoute && (
+            <div className="route-info glass-card">
+              <span>📍 {approvedStops.length} stops</span>
+              <span>🚗 {(optimizedRoute.distance_meters / 1000).toFixed(1)} km</span>
+              <span>⏱️ {Math.round(optimizedRoute.duration_seconds / 60)} min</span>
+            </div>
+          )}
+        </div>
+      )}
 
       <main className="chat-main">
         <div className="messages-container">

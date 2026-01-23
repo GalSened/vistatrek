@@ -15,8 +15,17 @@ import {
   ConversationMessage,
   ConversationPhase,
   ProposedStop,
+  LocationEntity,
 } from '../types/conversation';
 import { chatPlanApi } from '../api/client';
+import { Stop } from '../types';
+
+// Route data from report generation
+interface OptimizedRouteData {
+  polyline: [number, number][];
+  duration_seconds: number;
+  distance_meters: number;
+}
 
 interface ConversationContextType {
   // State
@@ -28,6 +37,9 @@ interface ConversationContextType {
   error: string | null;
   reportUrl: string | null;
   isGeneratingReport: boolean;
+  optimizedRoute: OptimizedRouteData | null;
+  destination: LocationEntity | null;
+  approvedStops: Stop[];
 
   // Actions
   startConversation: (language?: 'he' | 'en') => Promise<void>;
@@ -56,6 +68,9 @@ export function ConversationProvider({ children }: ConversationProviderProps) {
   const [error, setError] = useState<string | null>(null);
   const [reportUrl, setReportUrl] = useState<string | null>(null);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [optimizedRoute, setOptimizedRoute] = useState<OptimizedRouteData | null>(null);
+  const [destination, setDestination] = useState<LocationEntity | null>(null);
+  const [approvedStops, setApprovedStops] = useState<Stop[]>([]);
 
   const updateFromState = useCallback((state: Partial<ConversationState>) => {
     if (state.id) setConversationId(state.id);
@@ -63,6 +78,12 @@ export function ConversationProvider({ children }: ConversationProviderProps) {
     if (state.messages) setMessages(state.messages);
     if (state.currentProposal !== undefined) {
       setCurrentProposal(state.currentProposal || null);
+    }
+    if (state.destination) {
+      setDestination(state.destination);
+    }
+    if (state.approvedStops) {
+      setApprovedStops(state.approvedStops);
     }
   }, []);
 
@@ -212,6 +233,9 @@ export function ConversationProvider({ children }: ConversationProviderProps) {
     setError(null);
     setReportUrl(null);
     setIsGeneratingReport(false);
+    setOptimizedRoute(null);
+    setDestination(null);
+    setApprovedStops([]);
   }, []);
 
   const generateReport = useCallback(async (): Promise<string | null> => {
@@ -240,6 +264,10 @@ export function ConversationProvider({ children }: ConversationProviderProps) {
       const data = await response.json();
       if (data.report_url) {
         setReportUrl(data.report_url);
+        // Capture optimized route if available
+        if (data.optimized_route) {
+          setOptimizedRoute(data.optimized_route);
+        }
         return data.report_url;
       }
       return null;
@@ -260,6 +288,9 @@ export function ConversationProvider({ children }: ConversationProviderProps) {
     error,
     reportUrl,
     isGeneratingReport,
+    optimizedRoute,
+    destination,
+    approvedStops,
     startConversation,
     sendMessage,
     approveStop,
