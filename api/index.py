@@ -598,14 +598,23 @@ def extract_stops_from_text(message: str, destination: LocationEntity) -> list[d
     comma-separated mentions like 'visit La Sagrada Familia, Park Güell, and La Boqueria'"""
     stops = []
 
-    # Pattern 1: Numbered list items: "1. Place Name" or "1) Place Name"
-    numbered = re.findall(r'(?:^|\n)\s*\d+[\.\)]\s*(.+?)(?:\s*[-–—]\s|$|\n)', message)
+    # Pattern 1: Numbered items with dash description: "1. Place Name - description"
+    # Works for both newline-separated and comma-separated numbered lists
+    numbered = re.findall(r'\d+[\.\)]\s*(.+?)(?:\s*[-–—]\s)', message)
     for name in numbered:
         name = name.strip().rstrip('.,;:')
         if name and len(name) > 2 and len(name) < 80:
             stops.append({"name": name})
 
-    # Pattern 2: Bold or quoted names: **Place Name** or "Place Name"
+    # Pattern 1b: Numbered items on separate lines without dash
+    if not stops:
+        numbered2 = re.findall(r'\d+[\.\)]\s*(.+?)(?:\n|,\s*\d|$)', message)
+        for name in numbered2:
+            name = name.strip().rstrip('.,;:')
+            if name and len(name) > 2 and len(name) < 80:
+                stops.append({"name": name})
+
+    # Pattern 2: Bold names: **Place Name**
     if not stops:
         bold = re.findall(r'\*\*(.+?)\*\*', message)
         for name in bold:
@@ -613,19 +622,23 @@ def extract_stops_from_text(message: str, destination: LocationEntity) -> list[d
             if name and len(name) > 2 and len(name) < 80:
                 stops.append({"name": name})
 
-    # Pattern 3: Names before descriptions with dash/comma patterns
+    # Pattern 3: "visiting/visit/recommend X, Y, and Z" pattern
     if not stops:
-        # Match "visit X, Y, and Z" or "check out X, Y, Z"
         visit_pattern = re.findall(
-            r'(?:visit|see|check out|explore|stop at)\s+(.+?)(?:\.|$)',
+            r'(?:visiting|visit|see|check out|explore|recommend|stop at|suggest)\s+(.+?)(?:\.\s|$)',
             message, re.IGNORECASE
         )
         for match in visit_pattern:
-            # Split comma-separated names
             parts = re.split(r',\s*(?:and\s+)?|\s+and\s+', match)
             for part in parts:
                 name = part.strip().rstrip('.,;:')
-                if name and len(name) > 2 and len(name) < 80:
+                # Clean up common prefixes
+                name = re.sub(r'^(?:visiting|visit|then|also|try|walk along|check out|the architecture of)\s+', '', name, flags=re.IGNORECASE).strip()
+                # Filter out non-place fragments
+                if (name and len(name) > 2 and len(name) < 60
+                        and not name.lower().startswith(('some ', 'a ', 'the ', 'then ', 'also ', 'try '))
+                        and 'for a' not in name.lower()
+                        and 'to explore' not in name.lower()):
                     stops.append({"name": name})
 
     logger.info(f"Pattern-extracted {len(stops)} stop names from text")
