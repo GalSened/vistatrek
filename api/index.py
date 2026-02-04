@@ -496,11 +496,14 @@ You MUST follow this exact sequence. ONE question per message. Do NOT skip phase
 
 **PLANNING phase:**
 - Suggest 3-5 specific, real places that match their preferences in the destination
-- IMPORTANT: Always include the suggested places in the "extracted" field as "stops" array with place names
-- Each stop should include the name and a brief reason why it matches their interests
-- Example: "stops": [{"name": "Sagrada Familia", "reason": "Iconic Gaudí architecture"}, {"name": "La Boqueria Market", "reason": "Famous food market"}]
-- If user approves the suggestions (says "yes", "great", "perfect", "sounds good", etc.), keep the stops in extracted
-- If user wants changes, suggest alternatives and include updated stops in extracted
+- IMPORTANT: ALWAYS format suggestions as a NUMBERED LIST with this exact format in your message:
+  1. Place Name - Brief description
+  2. Place Name - Brief description
+  (etc.)
+- IMPORTANT: Also include the suggested places in the "extracted" field as "stops" array
+- Example extracted: "stops": [{{"name": "Sagrada Familia", "reason": "Iconic Gaudí architecture"}}]
+- If user approves the suggestions, keep the stops in extracted
+- If user wants changes, suggest alternatives as a new numbered list
 - When user says "done", "enough", "that's it", "finish", or similar, move to FINALIZE
 
 **FINALIZE phase:**
@@ -633,13 +636,28 @@ def extract_stops_from_text(message: str, destination: LocationEntity) -> list[d
             for part in parts:
                 name = part.strip().rstrip('.,;:')
                 # Clean up common prefixes
-                name = re.sub(r'^(?:visiting|visit|then|also|try|walk along|check out|the architecture of)\s+', '', name, flags=re.IGNORECASE).strip()
+                name = re.sub(r'^(?:visiting|visit|then|also|try|walk along|check out|checking out|exploring|the architecture of)\s+', '', name, flags=re.IGNORECASE).strip()
                 # Filter out non-place fragments
                 if (name and len(name) > 2 and len(name) < 60
                         and not name.lower().startswith(('some ', 'a ', 'the ', 'then ', 'also ', 'try '))
                         and 'for a' not in name.lower()
                         and 'to explore' not in name.lower()):
                     stops.append({"name": name})
+
+    # Pattern 4: Comma-separated list after colon: "places: X, Y, Z, and W"
+    if not stops:
+        colon_match = re.search(r':\s+((?:[A-Z][^,\.?!]+(?:,\s*(?:and\s+)?)?)+)', message)
+        if colon_match:
+            items_text = colon_match.group(1)
+            parts = re.split(r',\s*(?:and\s+)?|\s+and\s+', items_text)
+            colon_stops = []
+            for part in parts:
+                name = part.strip().rstrip('.,;:?')
+                if name and len(name) > 2 and len(name) < 80 and not name.lower().startswith(('its ', 'is ', 'a ')):
+                    colon_stops.append({"name": name})
+            # Only use if we found 2+ items (confirms it's a list, not a clause)
+            if len(colon_stops) >= 2:
+                stops = colon_stops
 
     logger.info(f"Pattern-extracted {len(stops)} stop names from text")
     return stops[:8]  # Cap at 8 stops
