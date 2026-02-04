@@ -593,29 +593,43 @@ def parse_ai_response(response: str) -> dict:
 
 
 def extract_stops_from_text(message: str, destination: LocationEntity) -> list[dict]:
-    """Use a quick LLM call to extract stop names from conversational text"""
-    try:
-        prompt = f"""Extract the names of specific places/attractions mentioned in this travel suggestion.
-Return ONLY a JSON array of objects with "name" fields. No explanation.
+    """Extract place names from LLM conversational text using pattern matching.
+    Handles numbered lists like '1. La Sagrada Familia - description' and
+    comma-separated mentions like 'visit La Sagrada Familia, Park Güell, and La Boqueria'"""
+    stops = []
 
-Text: {message}
+    # Pattern 1: Numbered list items: "1. Place Name" or "1) Place Name"
+    numbered = re.findall(r'(?:^|\n)\s*\d+[\.\)]\s*(.+?)(?:\s*[-–—]\s|$|\n)', message)
+    for name in numbered:
+        name = name.strip().rstrip('.,;:')
+        if name and len(name) > 2 and len(name) < 80:
+            stops.append({"name": name})
 
-Example output: [{{"name": "Sagrada Familia"}}, {{"name": "Park Güell"}}]"""
+    # Pattern 2: Bold or quoted names: **Place Name** or "Place Name"
+    if not stops:
+        bold = re.findall(r'\*\*(.+?)\*\*', message)
+        for name in bold:
+            name = name.strip()
+            if name and len(name) > 2 and len(name) < 80:
+                stops.append({"name": name})
 
-        response = call_groq_api([
-            {"role": "system", "content": "You extract place names from text. Return only valid JSON."},
-            {"role": "user", "content": prompt}
-        ])
+    # Pattern 3: Names before descriptions with dash/comma patterns
+    if not stops:
+        # Match "visit X, Y, and Z" or "check out X, Y, Z"
+        visit_pattern = re.findall(
+            r'(?:visit|see|check out|explore|stop at)\s+(.+?)(?:\.|$)',
+            message, re.IGNORECASE
+        )
+        for match in visit_pattern:
+            # Split comma-separated names
+            parts = re.split(r',\s*(?:and\s+)?|\s+and\s+', match)
+            for part in parts:
+                name = part.strip().rstrip('.,;:')
+                if name and len(name) > 2 and len(name) < 80:
+                    stops.append({"name": name})
 
-        # Parse the JSON array from response
-        json_match = re.search(r'\[[\s\S]*\]', response)
-        if json_match:
-            stops = json.loads(json_match.group())
-            if isinstance(stops, list):
-                return [s for s in stops if isinstance(s, dict) and s.get("name")]
-    except Exception as e:
-        logger.error(f"Failed to extract stops from text: {e}")
-    return []
+    logger.info(f"Pattern-extracted {len(stops)} stop names from text")
+    return stops[:8]  # Cap at 8 stops
 
 
 def build_llm_messages(state: ConversationState) -> list[dict]:
@@ -645,6 +659,38 @@ def build_llm_messages(state: ConversationState) -> list[dict]:
         })
 
     return messages
+
+
+def geocode_location_fast(query: str, language: str = "he") -> Optional[LocationEntity]:
+    """Fast geocode with short timeout for batch stop geocoding"""
+    try:
+        response = requests.get(
+            "https://nominatim.openstreetmap.org/search",
+            params={
+                "q": query,
+                "format": "json",
+                "limit": 1,
+                "accept-language": language
+            },
+            headers={"User-Agent": "VistaTrek/1.0"},
+            timeout=3
+        )
+
+        if response.status_code == 200 and response.json():
+            data = response.json()[0]
+            return LocationEntity(
+                raw_text=query,
+                normalized=data.get("display_name", query).split(",")[0],
+                coordinates=Coordinates(
+                    lat=float(data["lat"]),
+                    lon=float(data["lon"])
+                ),
+                confidence=0.8,
+                display_name=data.get("display_name"),
+            )
+    except Exception as e:
+        logger.warning(f"Fast geocoding failed for '{query}': {e}")
+    return None
 
 
 def geocode_location(query: str, language: str = "he") -> Optional[LocationEntity]:
@@ -780,14 +826,17 @@ def update_state_from_extracted(
         # Get existing stop names to avoid duplicates
         existing_names = {s.name.lower() for s in state.approved_stops}
 
-        for stop_info in stops_data:
+        for stop_info in stops_data[:5]:  # Cap at 5 stops to stay within timeout
             stop_name = stop_info.get("name", "")
             if not stop_name or stop_name.lower() in existing_names:
                 continue
 
             # Geocode the stop name (with destination context for better results)
             search_query = f"{stop_name}, {dest_name}" if dest_name else stop_name
-            location = geocode_location(search_query, language)
+            try:
+                location = geocode_location_fast(search_query, language)
+            except Exception:
+                location = None
             if location:
                 stop = Stop(
                     id=str(uuid.uuid4()),
