@@ -1098,7 +1098,7 @@ async def health_check():
 @app.get("/api/health")
 async def health_check_alt():
     """Alternative health endpoint for frontend compatibility"""
-    return {"status": "ok"}
+    return {"status": "ok", "version": "2.1.0"}
 
 
 @app.post("/api/plan_trip", response_model=TripResponse)
