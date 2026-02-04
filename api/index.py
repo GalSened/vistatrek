@@ -597,12 +597,11 @@ def parse_ai_response(response: str) -> dict:
 
 def extract_stops_from_text(message: str, destination: LocationEntity) -> list[dict]:
     """Extract place names from LLM conversational text using pattern matching.
-    Handles numbered lists like '1. La Sagrada Familia - description' and
-    comma-separated mentions like 'visit La Sagrada Familia, Park Güell, and La Boqueria'"""
+    Uses multiple strategies: numbered lists, bold text, comma lists, and
+    proper noun extraction as a robust fallback."""
     stops = []
 
     # Pattern 1: Numbered items with dash description: "1. Place Name - description"
-    # Works for both newline-separated and comma-separated numbered lists
     numbered = re.findall(r'\d+[\.\)]\s*(.+?)(?:\s*[-–—]\s)', message)
     for name in numbered:
         name = name.strip().rstrip('.,;:')
@@ -625,39 +624,42 @@ def extract_stops_from_text(message: str, destination: LocationEntity) -> list[d
             if name and len(name) > 2 and len(name) < 80:
                 stops.append({"name": name})
 
-    # Pattern 3: "visiting/visit/recommend X, Y, and Z" pattern
+    # Pattern 3: Proper noun extraction (robust fallback for conversational text)
+    # Extracts capitalized multi-word phrases like "La Sagrada Familia", "Park Güell"
     if not stops:
-        visit_pattern = re.findall(
-            r'(?:visiting|visit|see|check out|explore|recommend|stop at|suggest)\s+(.+?)(?:\.\s|$)',
-            message, re.IGNORECASE
+        # Match proper noun phrases: optional article/prefix + capitalized words
+        candidates = re.findall(
+            r'((?:(?:La |El |Les |The |Park |Camp |Casa |Palau |Plaça |Passeig |Mont)[A-ZÀ-Üa-zà-ü]+\s)?[A-ZÀ-Ü][a-zà-ü\'éèêëàâîïôùûüñç]+(?:\s+(?:de |del |la |el |di |d\')?[A-ZÀ-Ü][a-zà-ü\'éèêëàâîïôùûüñç]+){1,3})',
+            message
         )
-        for match in visit_pattern:
-            parts = re.split(r',\s*(?:and\s+)?|\s+and\s+', match)
-            for part in parts:
-                name = part.strip().rstrip('.,;:')
-                # Clean up common prefixes
-                name = re.sub(r'^(?:visiting|visit|then|also|try|walk along|check out|checking out|exploring|the architecture of)\s+', '', name, flags=re.IGNORECASE).strip()
-                # Filter out non-place fragments
-                if (name and len(name) > 2 and len(name) < 60
-                        and not name.lower().startswith(('some ', 'a ', 'the ', 'then ', 'also ', 'try '))
-                        and 'for a' not in name.lower()
-                        and 'to explore' not in name.lower()):
-                    stops.append({"name": name})
 
-    # Pattern 4: Comma-separated list after colon: "places: X, Y, Z, and W"
-    if not stops:
-        colon_match = re.search(r':\s+((?:[A-Z][^,\.?!]+(?:,\s*(?:and\s+)?)?)+)', message)
-        if colon_match:
-            items_text = colon_match.group(1)
-            parts = re.split(r',\s*(?:and\s+)?|\s+and\s+', items_text)
-            colon_stops = []
-            for part in parts:
-                name = part.strip().rstrip('.,;:?')
-                if name and len(name) > 2 and len(name) < 80 and not name.lower().startswith(('its ', 'is ', 'a ')):
-                    colon_stops.append({"name": name})
-            # Only use if we found 2+ items (confirms it's a list, not a clause)
-            if len(colon_stops) >= 2:
-                stops = colon_stops
+        # Build exclusion set from destination name
+        dest_name = ""
+        if destination:
+            dest_name = (destination.display_name or destination.normalized or "").lower()
+        exclude_lower = {
+            'barcelona', 'spain', 'catalonia', 'paris', 'france', 'rome', 'italy',
+            'antoni gaudí', 'gaudí', 'don\'t miss',
+        }
+        # Also exclude words from the destination display name
+        if dest_name:
+            for part in dest_name.split(','):
+                exclude_lower.add(part.strip().lower())
+
+        seen = set()
+        for phrase in candidates:
+            clean = phrase.strip()
+            # Strip leading verbs and English articles
+            clean = re.sub(
+                r'^(?:Visit|See|Check out|Explore|Try|Head to|Don\'t miss|The|A)\s+',
+                '', clean
+            ).strip()
+            if (clean.lower() not in exclude_lower
+                    and clean not in seen
+                    and len(clean) > 3
+                    and len(clean) < 80):
+                seen.add(clean)
+                stops.append({"name": clean})
 
     logger.info(f"Pattern-extracted {len(stops)} stop names from text")
     return stops[:8]  # Cap at 8 stops
