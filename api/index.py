@@ -592,6 +592,32 @@ def parse_ai_response(response: str) -> dict:
     return {"message": response}
 
 
+def extract_stops_from_text(message: str, destination: LocationEntity) -> list[dict]:
+    """Use a quick LLM call to extract stop names from conversational text"""
+    try:
+        prompt = f"""Extract the names of specific places/attractions mentioned in this travel suggestion.
+Return ONLY a JSON array of objects with "name" fields. No explanation.
+
+Text: {message}
+
+Example output: [{{"name": "Sagrada Familia"}}, {{"name": "Park Güell"}}]"""
+
+        response = call_groq_api([
+            {"role": "system", "content": "You extract place names from text. Return only valid JSON."},
+            {"role": "user", "content": prompt}
+        ])
+
+        # Parse the JSON array from response
+        json_match = re.search(r'\[[\s\S]*\]', response)
+        if json_match:
+            stops = json.loads(json_match.group())
+            if isinstance(stops, list):
+                return [s for s in stops if isinstance(s, dict) and s.get("name")]
+    except Exception as e:
+        logger.error(f"Failed to extract stops from text: {e}")
+    return []
+
+
 def build_llm_messages(state: ConversationState) -> list[dict]:
     """Build message history for LLM with state injected into system prompt"""
     # Prepare state values for template
@@ -1331,6 +1357,20 @@ async def send_plan_message(request: ChatPlanRequest):
         # ALWAYS auto-advance based on extracted data
         # This ensures we move forward when data is complete, regardless of LLM suggestion
         auto_advance_phase(state)
+
+        # Fallback: extract stops from message text in PLANNING/FINALIZE phases
+        # if the LLM mentioned stops but didn't include them in extracted.stops
+        if state.phase in (ConversationPhase.PLANNING, ConversationPhase.FINALIZE) and len(state.approved_stops) == 0:
+            msg_text = parsed.get("message", "")
+            if msg_text and state.destination:
+                extracted_stops = extract_stops_from_text(msg_text, state.destination)
+                if extracted_stops:
+                    update_state_from_extracted(
+                        state,
+                        {"stops": extracted_stops},
+                        request.language
+                    )
+                    logger.info(f"Fallback extracted {len(extracted_stops)} stops from text")
 
         # Build quick replies if provided
         quick_replies = None
