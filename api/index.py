@@ -495,8 +495,12 @@ You MUST follow this exact sequence. ONE question per message. Do NOT skip phase
 - Exit: Move to PLANNING when at least one preference is captured
 
 **PLANNING phase:**
-- Suggest places that match their preferences
-- Keep responses conversational, not overly structured
+- Suggest 3-5 specific, real places that match their preferences in the destination
+- IMPORTANT: Always include the suggested places in the "extracted" field as "stops" array with place names
+- Each stop should include the name and a brief reason why it matches their interests
+- Example: "stops": [{"name": "Sagrada Familia", "reason": "Iconic Gaudí architecture"}, {"name": "La Boqueria Market", "reason": "Famous food market"}]
+- If user approves the suggestions (says "yes", "great", "perfect", "sounds good", etc.), keep the stops in extracted
+- If user wants changes, suggest alternatives and include updated stops in extracted
 - When user says "done", "enough", "that's it", "finish", or similar, move to FINALIZE
 
 **FINALIZE phase:**
@@ -522,7 +526,8 @@ Output valid JSON:
     "end_date": "YYYY-MM-DD if mentioned",
     "duration_days": number if mentioned,
     "vibes": ["interests"],
-    "pace": "relaxed|moderate|active"
+    "pace": "relaxed|moderate|active",
+    "stops": [{{"name": "Place Name", "reason": "Why visit"}}]
   }},
   "quick_replies": ["Option1", "Option2"]
 }}
@@ -738,6 +743,38 @@ def update_state_from_extracted(
                 state.preferences.pace = TripPace(pace)
             except ValueError:
                 pass
+
+    # Handle stops from PLANNING phase
+    stops_data = extracted.get("stops", [])
+    if stops_data and state.phase in (ConversationPhase.PLANNING, ConversationPhase.FINALIZE):
+        dest_name = ""
+        if state.destination:
+            dest_name = state.destination.display_name or state.destination.normalized or ""
+
+        # Get existing stop names to avoid duplicates
+        existing_names = {s.name.lower() for s in state.approved_stops}
+
+        for stop_info in stops_data:
+            stop_name = stop_info.get("name", "")
+            if not stop_name or stop_name.lower() in existing_names:
+                continue
+
+            # Geocode the stop name (with destination context for better results)
+            search_query = f"{stop_name}, {dest_name}" if dest_name else stop_name
+            location = geocode_location(search_query, language)
+            if location:
+                stop = Stop(
+                    id=str(uuid.uuid4()),
+                    name=stop_name,
+                    type="attraction",
+                    coordinates=location.coordinates,
+                    planned_arrival=datetime.utcnow().isoformat(),
+                    planned_departure=datetime.utcnow().isoformat(),
+                    duration_minutes=30,
+                )
+                state.approved_stops.append(stop)
+                existing_names.add(stop_name.lower())
+                logger.info(f"Added stop: {stop_name} at ({location.coordinates.lat}, {location.coordinates.lon})")
 
 
 def auto_advance_phase(state: ConversationState):
